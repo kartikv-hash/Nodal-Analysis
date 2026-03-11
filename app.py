@@ -697,314 +697,435 @@ with st.sidebar:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ██████████████████████  PAGE 1: INFRASTRUCTURE MAP  ██████████████████████
+# ██████████████████  PAGE 1: INFRASTRUCTURE MAP  ███████████████████████████
 # ═══════════════════════════════════════════════════════════════════════════════
 if page == "🗺️ Infrastructure Map":
 
     st.markdown("""
     <div class="page-header">
         <div class="tag">⚡ SunStripe · ERCOT</div>
-        <h1>INFRASTRUCTURE <span>MAP</span></h1>
+        <h1>SUBSTATION <span>SEARCH</span></h1>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Init session state ──────────────────────────────────────────
-    for key, default in [
-        ("map_center",   [31.5, -97.5]),
-        ("map_zoom",     7),
-        ("click_point",  None),
-        ("osm_nearby",   []),
-        ("osm_selected", None),
-        ("ercot_sel_sub", None),
-        ("ercot_matches", []),
-        ("overpass_err", None),
+    # ── Session state ─────────────────────────────────────────────────────────
+    for k, v in [
+        ("search_results", None), ("selected_osm", None),
+        ("ercot_sel_sub", None),  ("search_lat", 31.5),
+        ("search_lon", -97.5),    ("last_search_key", ""),
     ]:
-        if key not in st.session_state:
-            st.session_state[key] = default
+        if k not in st.session_state:
+            st.session_state[k] = v
 
-    # ── Top bar: geocode search ─────────────────────────────────────
-    col_search, col_go = st.columns([5, 1])
-    with col_search:
-        loc_input = st.text_input(
-            "Navigate to location",
-            placeholder="Type a city, town, or coordinates (e.g. 'Wichita Falls TX' or '33.79,-98.57')",
-            label_visibility="collapsed",
-            key="loc_input"
-        )
-    with col_go:
-        go_btn = st.button("Go →", use_container_width=True, key="go_btn")
+    # ── SEARCH PARAMETERS ────────────────────────────────────────────────────
+    st.markdown('<div style="background:#111720;border:1px solid #1e2d42;border-radius:8px;padding:18px 20px;margin-bottom:18px;">', unsafe_allow_html=True)
+    st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:9px;color:#3a5070;letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px">SEARCH PARAMETERS</div>', unsafe_allow_html=True)
 
-    if go_btn and loc_input.strip():
-        coord_m = re.match(r"^\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*$", loc_input.strip())
-        if coord_m:
-            st.session_state.map_center = [float(coord_m.group(1)), float(coord_m.group(2))]
-            st.session_state.map_zoom   = 12
-        else:
+    col_lat, col_lon, col_radius, col_thresh = st.columns([2, 2, 2, 2])
+
+    with col_lat:
+        st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin-bottom:4px">Latitude</div>', unsafe_allow_html=True)
+        lat_input = st.number_input("lat", value=st.session_state.search_lat,
+            format="%.6f", label_visibility="collapsed", key="lat_input",
+            min_value=25.0, max_value=37.0, step=0.001)
+
+    with col_lon:
+        st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin-bottom:4px">Longitude</div>', unsafe_allow_html=True)
+        lon_input = st.number_input("lon", value=st.session_state.search_lon,
+            format="%.6f", label_visibility="collapsed", key="lon_input",
+            min_value=-107.0, max_value=-93.0, step=0.001)
+
+    with col_radius:
+        st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin-bottom:4px">Search Radius (miles)</div>', unsafe_allow_html=True)
+        radius_miles = st.selectbox("radius", [5, 10, 15, 25, 35, 50, 75, 100],
+            index=3, label_visibility="collapsed", key="radius_sel")
+
+    with col_thresh:
+        st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin-bottom:4px">Hub Threshold (kV ≥)</div>', unsafe_allow_html=True)
+        hub_thresh = st.selectbox("thresh", [115, 138, 230, 345],
+            index=2, label_visibility="collapsed", key="hub_thresh")
+
+    # Voltage filter pills
+    st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin:12px 0 6px">Filter Voltages</div>', unsafe_allow_html=True)
+    kv_options = ["34.5", "69", "115", "138", "230", "345", "500", "765"]
+    kv_cols = st.columns(len(kv_options) + 1)
+    kv_selected = []
+    for i, kv in enumerate(kv_options):
+        default = kv in ["69", "115", "138", "230", "345"]
+        if kv_cols[i].checkbox(f"{kv} kV", value=default, key=f"kv_pill_{kv}"):
+            kv_selected.append(kv)
+    inc_unknown = kv_cols[-1].checkbox("Unknown V", value=True, key="inc_unknown")
+
+    # Bottom row: link + search button
+    link_col, btn_col = st.columns([4, 1])
+    with link_col:
+        oim_url = f"https://openinframap.org/#10/{lat_input:.4f}/{lon_input:.4f}"
+        st.markdown(f'<a href="{oim_url}" target="_blank" style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#00d4ff;text-decoration:none;">🔗 Open this area in OpenInfraMap ↗</a>', unsafe_allow_html=True)
+    with btn_col:
+        search_btn = st.button("🔍 Search Substations", use_container_width=True, key="search_btn",
+                               type="primary")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── OVERPASS QUERY ───────────────────────────────────────────────────────
+    if search_btn:
+        st.session_state.search_lat     = lat_input
+        st.session_state.search_lon     = lon_input
+        st.session_state.selected_osm   = None
+        st.session_state.ercot_sel_sub  = None
+
+        radius_m = int(radius_miles * 1609.34)
+
+        # Build kV filter for Overpass
+        # We'll fetch everything and filter client-side (more reliable)
+        query = f"""[out:json][timeout:40];
+(
+  node["power"="substation"](around:{radius_m},{lat_input},{lon_input});
+  way["power"="substation"](around:{radius_m},{lat_input},{lon_input});
+  relation["power"="substation"](around:{radius_m},{lat_input},{lon_input});
+);
+out center tags;"""
+
+        with st.spinner(f"Searching {radius_miles} mi radius around {lat_input:.4f}, {lon_input:.4f}..."):
             try:
-                geo = requests.get(
-                    "https://nominatim.openstreetmap.org/search",
-                    params={"q": loc_input, "format": "json", "limit": 1, "countrycodes": "us"},
-                    headers={"User-Agent": "SunStripe-ERCOT/1.0"}, timeout=8
-                ).json()
-                if geo:
-                    st.session_state.map_center = [float(geo[0]["lat"]), float(geo[0]["lon"])]
-                    st.session_state.map_zoom   = 12
-                    st.success(f"📍 {geo[0]['display_name'].split(',')[0]}")
-                else:
-                    st.warning("Location not found.")
+                resp = requests.post(
+                    "https://overpass-api.de/api/interpreter",
+                    data={"data": query}, timeout=45,
+                    headers={"User-Agent": "SunStripe-ERCOT/1.0"}
+                )
+                resp.raise_for_status()
+                raw_elements = []
+                for el in resp.json().get("elements", []):
+                    elat = el.get("lat") or (el.get("center") or {}).get("lat")
+                    elon = el.get("lon") or (el.get("center") or {}).get("lon")
+                    if not elat or not elon:
+                        continue
+                    tags = el.get("tags", {})
+                    raw_volt_str = tags.get("voltage", "")
+                    # Parse voltage to kV
+                    try:
+                        raw_v = float(raw_volt_str.split(";")[0].strip())
+                        volt_kv = raw_v / 1000 if raw_v > 1000 else raw_v
+                    except:
+                        volt_kv = None
+
+                    dist_km = haversine(lat_input, lon_input, elat, elon)
+                    dist_mi = dist_km / 1.60934
+
+                    raw_elements.append({
+                        "lat": elat, "lon": elon,
+                        "name":      tags.get("name", ""),
+                        "voltage":   raw_volt_str,
+                        "volt_kv":   volt_kv,
+                        "operator":  tags.get("operator", ""),
+                        "ref":       tags.get("ref", ""),
+                        "osm_id":    str(el.get("id", "")),
+                        "dist_mi":   round(dist_mi, 2),
+                        "dist_km":   round(dist_km, 2),
+                    })
+
+                # Apply voltage filter
+                filtered = []
+                for el in raw_elements:
+                    v = el["volt_kv"]
+                    if v is None:
+                        if inc_unknown:
+                            filtered.append(el)
+                    else:
+                        v_str = str(int(v)) if v == int(v) else str(v)
+                        if any(abs(v - float(kv)) < 5 for kv in kv_selected):
+                            filtered.append(el)
+
+                # Sort by distance
+                filtered.sort(key=lambda x: x["dist_mi"])
+
+                # Classify Hub vs Node using hub_thresh
+                for el in filtered:
+                    v = el["volt_kv"]
+                    el["is_hub"] = (v is not None and v >= hub_thresh)
+
+                st.session_state.search_results = {
+                    "elements": filtered,
+                    "total_raw": len(raw_elements),
+                    "lat": lat_input, "lon": lon_input,
+                    "radius_mi": radius_miles,
+                    "hub_thresh": hub_thresh,
+                }
+
+            except requests.exceptions.Timeout:
+                st.error("Overpass API timed out. Try a smaller radius or try again.")
+                st.session_state.search_results = None
             except Exception as e:
-                st.warning(f"Geocoding error: {e}")
+                st.error(f"Search error: {e}")
+                st.session_state.search_results = None
 
-    # ── Hint bar ────────────────────────────────────────────────────
-    st.markdown("""
-    <div class="hint-bar">
-        <span style="color:#00d4ff">ℹ</span>
-        <span>Navigate the map to your area of interest · Zoom in to see substations on the power layer ·
-        <strong style="color:#e8f0f8">Click anywhere</strong> on or near a substation to identify it</span>
-    </div>
-    """, unsafe_allow_html=True)
+    # ── RESULTS ──────────────────────────────────────────────────────────────
+    results = st.session_state.search_results
 
-    # ── Map | Info panel layout ─────────────────────────────────────
-    map_col, info_col = st.columns([3, 2], gap="medium")
+    if results is None:
+        st.markdown("""
+        <div style="text-align:center;padding:60px 20px;color:#3a5070;font-family:IBM Plex Mono,monospace;
+             background:#0a0e14;border:1px dashed #1e2d42;border-radius:8px;">
+            <div style="font-size:40px;margin-bottom:12px">⚡</div>
+            <div style="font-size:14px;font-weight:600;color:#1e2d42;margin-bottom:6px">No search yet</div>
+            <div style="font-size:11px;line-height:1.7">Enter coordinates · set radius · click <strong style="color:#00d4ff">Search Substations</strong></div>
+        </div>""", unsafe_allow_html=True)
 
-    with map_col:
-        m = build_infrastructure_map(
-            center_lat   = st.session_state.map_center[0],
-            center_lon   = st.session_state.map_center[1],
-            zoom         = st.session_state.map_zoom,
-            click_marker = st.session_state.click_point,
-            nearby_subs  = st.session_state.osm_nearby,
-            selected_sub = st.session_state.osm_selected,
-        )
+    else:
+        elements  = results["elements"]
+        hubs_list = [e for e in elements if e["is_hub"]]
+        node_list = [e for e in elements if not e["is_hub"]]
+        clat, clon = results["lat"], results["lon"]
 
-        map_data = st_folium(
-            m,
-            key="infra_map",
-            use_container_width=True,
-            height=560,
-            returned_objects=["last_clicked", "center", "zoom"],
-        )
+        # ── METRICS ROW ──────────────────────────────────────────────
+        m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("Total Found",    len(elements))
+        m2.metric(f"Hubs (≥{results['hub_thresh']} kV)", len(hubs_list))
+        m3.metric(f"Nodes (<{results['hub_thresh']} kV)", len(node_list))
+        m4.metric("Radius",         f"{results['radius_mi']} mi")
+        m5.metric("Centre",         f"{clat:.3f}, {clon:.3f}")
+
+        # ── MAP ──────────────────────────────────────────────────────
+        m = folium.Map(location=[clat, clon], zoom_start=10, tiles=None, prefer_canvas=True)
+
+        # Dark base
+        folium.TileLayer(
+            tiles="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+            attr="© CartoDB", name="Dark", overlay=False, control=True
+        ).add_to(m)
+
+        # OpenInfraMap power overlay
+        folium.TileLayer(
+            tiles="https://tiles.openinframap.org/power_medium/{z}/{x}/{y}.png",
+            attr="© OpenInfraMap", name="⚡ Power Infrastructure",
+            overlay=True, control=True, opacity=0.85
+        ).add_to(m)
+        folium.TileLayer(
+            tiles="https://tiles.openinframap.org/power_high/{z}/{x}/{y}.png",
+            attr="© OpenInfraMap", name="⚡ HV Lines",
+            overlay=True, control=True, opacity=0.75
+        ).add_to(m)
+
+        # Search radius circle
+        folium.Circle(
+            location=[clat, clon],
+            radius=results["radius_mi"] * 1609.34,
+            color="#ffcc00", weight=1, fill=False,
+            dash_array="6 4", tooltip=f"{results['radius_mi']} mi radius"
+        ).add_to(m)
+
+        # Centre marker
+        folium.Marker(
+            location=[clat, clon],
+            icon=folium.DivIcon(html="""
+                <div style="width:14px;height:14px;border-radius:50%;background:#ffcc00;
+                     border:2px solid #fff;box-shadow:0 0 6px #ffcc00;margin:-7px 0 0 -7px;"></div>"""),
+            tooltip="Search Centre",
+        ).add_to(m)
+
+        sel_id = st.session_state.selected_osm.get("osm_id") if st.session_state.selected_osm else None
+
+        for el in elements:
+            is_sel   = (el["osm_id"] == sel_id)
+            is_hub   = el["is_hub"]
+            name     = el.get("name") or "Unnamed"
+            v        = el["volt_kv"]
+            v_label  = f"{v:.0f} kV" if v else "? kV"
+            op       = el.get("operator","")
+
+            # Colour: yellow=hub, cyan=node, white border if selected
+            fill_col = "#e040fb" if is_hub else "#00bcd4"
+            ring_col = "#ffffff" if is_sel else fill_col
+            radius   = 11 if is_sel else (9 if is_hub else 7)
+
+            popup_html = f"""
+<div style="font-family:IBM Plex Mono,monospace;background:#0f1a24;color:#e8f0f8;
+     padding:12px;border-radius:6px;min-width:210px;border:1px solid #1e2d42;">
+  <div style="font-size:12px;font-weight:600;color:{'#e040fb' if is_hub else '#00bcd4'};margin-bottom:8px">
+    {'🔮 HUB' if is_hub else '🔵 NODE'} &nbsp; {name}
+  </div>
+  <div style="font-size:10px;color:#3a5070">VOLTAGE</div>
+  <div style="font-size:12px;margin-bottom:5px">{v_label}</div>
+  {'<div style="font-size:10px;color:#3a5070">OPERATOR</div><div style="font-size:11px;margin-bottom:5px">'+op+'</div>' if op else ''}
+  <div style="font-size:10px;color:#3a5070">Distance</div>
+  <div style="font-size:11px">{el["dist_mi"]:.1f} mi · {el["dist_km"]:.1f} km</div>
+</div>"""
+
+            folium.CircleMarker(
+                location=[el["lat"], el["lon"]],
+                radius=radius,
+                color=ring_col, weight=3 if is_sel else 1,
+                fill=True, fill_color=fill_col,
+                fill_opacity=0.9 if is_sel else 0.75,
+                popup=folium.Popup(popup_html, max_width=260),
+                tooltip=f"{'🔮' if is_hub else '🔵'} {name} · {v_label} · {el['dist_mi']:.1f} mi",
+            ).add_to(m)
+
+        folium.LayerControl(collapsed=False, position="topright").add_to(m)
+
+        map_data = st_folium(m, key="search_map", use_container_width=True, height=500,
+                             returned_objects=["last_object_clicked_tooltip"])
 
         # Legend
-        st.markdown("""
-        <div style="display:flex;gap:14px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;
-             font-size:10px;color:#3a5070;margin-top:6px;padding:6px 10px;
-             background:#0a0e14;border:1px solid #1e2d42;border-radius:4px;">
-            <span>● <span style="color:#ff9933">345 kV</span></span>
-            <span>● <span style="color:#ffcc00">230 kV</span></span>
-            <span>● <span style="color:#00d4ff">138 kV</span></span>
-            <span>● <span style="color:#39d353">69 kV</span></span>
-            <span>● <span style="color:#8899aa">&lt;69 kV</span></span>
-            <span style="margin-left:8px;color:#1e4060">Enable "⚡ Power Infrastructure" layer to see lines</span>
+        st.markdown(f"""
+        <div style="display:flex;gap:20px;font-family:IBM Plex Mono,monospace;font-size:11px;
+             color:#6b8aaa;padding:6px 12px;background:#0a0e14;border:1px solid #1e2d42;
+             border-radius:4px;margin-top:6px;flex-wrap:wrap;">
+            <span>● <span style="color:#ffcc00">Search Centre</span></span>
+            <span>● <span style="color:#e040fb">Hub (≥{results["hub_thresh"]} kV)</span> — {len(hubs_list)} found</span>
+            <span>● <span style="color:#00bcd4">Node (&lt;{results["hub_thresh"]} kV)</span> — {len(node_list)} found</span>
+            <span style="color:#1e4060">— — Radius boundary</span>
         </div>
         """, unsafe_allow_html=True)
 
-    # ── Process map click ───────────────────────────────────────────
-    if map_data and map_data.get("last_clicked"):
-        clicked_lat = map_data["last_clicked"]["lat"]
-        clicked_lon = map_data["last_clicked"]["lng"]
+        # ── SUBSTATION LIST + SELECTION ──────────────────────────────
+        st.markdown('<div style="margin-top:20px">', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">Found Substations — Click to Inspect</div>', unsafe_allow_html=True)
 
-        # Only re-query if click point changed meaningfully (>50m)
-        prev = st.session_state.click_point
-        moved = (prev is None or
-                 haversine(prev[0], prev[1], clicked_lat, clicked_lon) > 0.05)
+        # Two tabs: Hubs | Nodes | All
+        tab_all, tab_hubs, tab_nodes = st.tabs([
+            f"All ({len(elements)})",
+            f"🔮 Hubs ({len(hubs_list)})",
+            f"🔵 Nodes ({len(node_list)})",
+        ])
 
-        if moved:
-            st.session_state.click_point  = [clicked_lat, clicked_lon]
-            st.session_state.osm_selected = None
-            st.session_state.ercot_sel_sub = None
-            st.session_state.ercot_matches = []
+        def render_sub_list(sub_list):
+            if not sub_list:
+                st.markdown('<div style="color:#3a5070;font-family:IBM Plex Mono,monospace;font-size:12px;padding:16px">No substations in this category.</div>', unsafe_allow_html=True)
+                return
+            for el in sub_list:
+                name    = el.get("name") or "Unnamed Substation"
+                v       = el["volt_kv"]
+                v_label = f"{v:.0f} kV" if v else "? kV"
+                is_hub  = el["is_hub"]
+                is_sel  = (st.session_state.selected_osm and
+                           st.session_state.selected_osm.get("osm_id") == el["osm_id"])
 
-            with info_col:
-                with st.spinner("Finding substations near click..."):
-                    subs, err = fetch_near_click(clicked_lat, clicked_lon, radius_deg=0.12)
-                st.session_state.osm_nearby  = subs
-                st.session_state.overpass_err = err
+                border = "border-color:rgba(224,64,251,0.5)" if is_hub else "border-color:rgba(0,188,212,0.3)"
+                if is_sel:
+                    border = "border-color:#ffffff"
 
-            st.rerun()
-
-    # ── Info panel ──────────────────────────────────────────────────
-    with info_col:
-
-        if st.session_state.overpass_err:
-            st.error(st.session_state.overpass_err)
-
-        if not st.session_state.click_point:
-            st.markdown("""
-            <div class="map-placeholder">
-                <div class="mp-icon">🗺️</div>
-                <div class="mp-title">No location selected</div>
-                <div class="mp-sub">
-                    Navigate the map using the <strong>⚡ Power Infrastructure</strong>
-                    tile layer to see substations and lines, then
-                    <strong>click</strong> on a substation to identify it.
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        elif st.session_state.osm_nearby is not None:
-            cp = st.session_state.click_point
-            n_found = len(st.session_state.osm_nearby)
-
-            st.markdown(f"""
-            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;
-                 color:#3a5070;margin-bottom:10px;">
-                📍 Click: <span style="color:#e8f0f8">{cp[0]:.4f}, {cp[1]:.4f}</span>
-                &nbsp;·&nbsp; Found <span style="color:#00d4ff">{n_found}</span> substation(s) nearby
-            </div>
-            """, unsafe_allow_html=True)
-
-            if n_found == 0:
-                st.markdown("""
-                <div class="map-placeholder" style="padding:24px">
-                    <div class="mp-icon">🔍</div>
-                    <div class="mp-sub">No OSM substations found within ~13 km.<br>
-                    Try clicking closer to a substation symbol on the map,<br>
-                    or zoom in and try again.</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                # ── Substation selector ─────────────────────────
-                st.markdown('<div class="section-label">Nearby Substations</div>', unsafe_allow_html=True)
-
-                osm_opts = {}
-                for s in st.session_state.osm_nearby[:8]:
-                    name = s.get("name") or "Unnamed Substation"
-                    try:
-                        v = float(s.get("voltage","0").split(";")[0]) / 1000
-                        v_str = f"{v:.0f} kV"
-                    except:
-                        v_str = "? kV"
-                    dist = haversine(cp[0], cp[1], s["lat"], s["lon"])
-                    label = f"{name}  ·  {v_str}  ·  {dist:.1f} km"
-                    osm_opts[label] = s
-
-                sel_label = st.radio(
-                    "Select substation",
-                    list(osm_opts.keys()),
-                    label_visibility="collapsed",
-                    key="osm_radio",
-                )
-                chosen_osm = osm_opts[sel_label]
-
-                if chosen_osm != st.session_state.osm_selected:
-                    st.session_state.osm_selected  = chosen_osm
-                    st.session_state.ercot_sel_sub = None
-                    st.session_state.ercot_matches = []
-
-                # ── OSM details ─────────────────────────────────
-                osm_name = chosen_osm.get("name","") or "Unnamed"
-                osm_volt = chosen_osm.get("voltage","")
-                try:
-                    v_kv = float(osm_volt.split(";")[0]) / 1000
-                    v_label = f"{v_kv:.0f} kV"
-                except:
-                    v_label = osm_volt or "Unknown"
-
-                st.markdown(f"""
-                <div class="osm-card">
-                    <div class="oc-title">📡 {osm_name}</div>
-                    <div class="oc-grid">
-                        <div class="oc-item">
-                            <div class="oc-lbl">OSM Voltage</div>
-                            <div class="oc-val">{v_label}</div>
+                col_a, col_b = st.columns([5, 1])
+                with col_a:
+                    st.markdown(f"""
+                    <div style="background:#0f1a24;border:1px solid;{border};border-radius:6px;
+                         padding:10px 14px;margin-bottom:6px;cursor:pointer;">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <div>
+                                <span style="font-family:IBM Plex Mono,monospace;font-size:12px;
+                                      font-weight:600;color:{'#e040fb' if is_hub else '#00bcd4'}">
+                                    {'🔮' if is_hub else '🔵'} {name}
+                                </span>
+                                {'<span style="font-size:10px;background:rgba(224,64,251,0.1);border:1px solid rgba(224,64,251,0.3);color:#e040fb;border-radius:3px;padding:1px 6px;margin-left:8px;font-family:IBM Plex Mono,monospace">HUB</span>' if is_hub else ''}
+                            </div>
+                            <div style="text-align:right">
+                                <div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#e8f0f8">{v_label}</div>
+                                <div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#3a5070">{el["dist_mi"]:.1f} mi</div>
+                            </div>
                         </div>
-                        <div class="oc-item">
-                            <div class="oc-lbl">Operator</div>
-                            <div class="oc-val">{chosen_osm.get("operator","—") or "—"}</div>
-                        </div>
-                        <div class="oc-item">
-                            <div class="oc-lbl">Coordinates</div>
-                            <div class="oc-val">{chosen_osm["lat"]:.4f}, {chosen_osm["lon"]:.4f}</div>
-                        </div>
-                        <div class="oc-item">
-                            <div class="oc-lbl">Ref</div>
-                            <div class="oc-val">{chosen_osm.get("ref","—") or "—"}</div>
+                        <div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#3a5070;margin-top:4px">
+                            {el.get("operator","") or ""}{" · " if el.get("operator") else ""}
+                            {el["lat"]:.4f}, {el["lon"]:.4f}
                         </div>
                     </div>
+                    """, unsafe_allow_html=True)
+                with col_b:
+                    if st.button("Inspect →", key=f"sel_{el['osm_id']}", use_container_width=True):
+                        st.session_state.selected_osm  = el
+                        st.session_state.ercot_sel_sub = None
+                        st.rerun()
+
+        with tab_all:   render_sub_list(elements)
+        with tab_hubs:  render_sub_list(hubs_list)
+        with tab_nodes: render_sub_list(node_list)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── SELECTED SUBSTATION DETAIL ───────────────────────────────
+        if st.session_state.selected_osm:
+            sel = st.session_state.selected_osm
+            osm_name = sel.get("name","") or "Unnamed"
+            osm_volt = sel.get("voltage","")
+            v        = sel.get("volt_kv")
+            v_label  = f"{v:.0f} kV" if v else "Unknown kV"
+            is_hub   = sel.get("is_hub", False)
+
+            st.markdown("---")
+            st.markdown(f"""
+            <div class="osm-card" style="border-left-color:{'#e040fb' if is_hub else '#00bcd4'}">
+                <div class="oc-title" style="color:{'#e040fb' if is_hub else '#00bcd4'}">
+                    {'🔮 HUB' if is_hub else '🔵 NODE'} &nbsp; {osm_name}
                 </div>
-                """, unsafe_allow_html=True)
+                <div class="oc-grid">
+                    <div class="oc-item"><div class="oc-lbl">Voltage</div><div class="oc-val">{v_label}</div></div>
+                    <div class="oc-item"><div class="oc-lbl">Operator</div><div class="oc-val">{sel.get("operator","—") or "—"}</div></div>
+                    <div class="oc-item"><div class="oc-lbl">Distance</div><div class="oc-val">{sel["dist_mi"]:.1f} mi</div></div>
+                    <div class="oc-item"><div class="oc-lbl">Coordinates</div><div class="oc-val">{sel["lat"]:.4f}, {sel["lon"]:.4f}</div></div>
+                    <div class="oc-item"><div class="oc-lbl">Ref</div><div class="oc-val">{sel.get("ref","—") or "—"}</div></div>
+                    <div class="oc-item"><div class="oc-lbl">OSM ID</div><div class="oc-val">{sel.get("osm_id","")}</div></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-                # ── Match to ERCOT ──────────────────────────────
-                st.markdown('<div class="section-label">Match to ERCOT CSV</div>', unsafe_allow_html=True)
+            # ERCOT matching
+            st.markdown('<div class="section-label">ERCOT CSV Match</div>', unsafe_allow_html=True)
 
-                matches = match_to_ercot(osm_name, osm_volt)
+            ercot_matches = match_to_ercot(osm_name, osm_volt)
 
-                if not matches:
-                    st.warning(f"No ERCOT match found for **{osm_name}**. Try searching by substation name in the Substation Lookup page.")
-                else:
-                    match_names = [m[0] for m in matches]
-                    scores      = {m[0]: m[1] for m in matches}
+            if not ercot_matches:
+                st.warning(f"No ERCOT settlement point match found for **{osm_name}**. "
+                           "Try searching by name in the Substation Lookup page.")
+            else:
+                match_names = [m[0] for m in ercot_matches]
+                scores      = {m[0]: m[1] for m in ercot_matches}
 
-                    # Auto-select top match; allow override
-                    if st.session_state.ercot_sel_sub not in match_names:
-                        st.session_state.ercot_sel_sub = match_names[0]
+                if st.session_state.ercot_sel_sub not in match_names:
+                    st.session_state.ercot_sel_sub = match_names[0]
 
-                    if len(matches) > 1:
-                        def fmt_opt(name):
-                            s = scores[name]
-                            conf = "HIGH" if s >= 30 else "MED" if s >= 15 else "LOW"
-                            sub_row = df[df["Substation"]==name].iloc[0] if len(df[df["Substation"]==name]) else None
-                            kvs = "/".join(sorted(df[df["Substation"]==name]["kV"].unique(), key=lambda x:-float(x) if x else 0)[:2]) if sub_row is not None else ""
-                            return f"{name}  [{kvs} kV]  conf:{conf}"
+                def fmt_match(name):
+                    s    = scores[name]
+                    conf = "HIGH" if s >= 30 else "MED" if s >= 15 else "LOW"
+                    kvs  = "/".join(sorted(df[df["Substation"]==name]["kV"].unique(),
+                                          key=lambda x: -float(x) if x else 0)[:2])
+                    cnt  = len(df[df["Substation"]==name])
+                    return f"{name}  [{kvs} kV · {cnt} buses · conf:{conf}]"
 
-                        chosen_ercot = st.selectbox(
-                            "ERCOT match",
-                            match_names,
-                            format_func=fmt_opt,
-                            index=0,
-                            label_visibility="collapsed",
-                            key="ercot_match_sel"
-                        )
-                        st.session_state.ercot_sel_sub = chosen_ercot
-                    else:
-                        st.session_state.ercot_sel_sub = match_names[0]
-                        score = scores[match_names[0]]
-                        conf  = "HIGH" if score >= 30 else "MED" if score >= 15 else "LOW"
-                        conf_cls = "conf-high" if conf=="HIGH" else "conf-med" if conf=="MED" else "conf-low"
-                        st.markdown(f"""
-                        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;
-                             color:#3a5070;margin-bottom:6px;">
-                            Best match: <span style="color:#ff6b35">{match_names[0]}</span>
-                            &nbsp;·&nbsp; confidence: <span class="{conf_cls}">{conf}</span>
-                        </div>
-                        """, unsafe_allow_html=True)
+                chosen = st.selectbox(
+                    "ERCOT match", match_names,
+                    format_func=fmt_match, index=0,
+                    label_visibility="collapsed", key="ercot_match_radio"
+                )
+                st.session_state.ercot_sel_sub = chosen
 
-    # ── Below the map: full ERCOT data + LMP ───────────────────────
-    sel_sub = st.session_state.get("ercot_sel_sub")
-    if sel_sub:
-        sub_df = df[df["Substation"] == sel_sub].copy()
+            # ── FULL ERCOT DATA ──────────────────────────────────────
+            if st.session_state.ercot_sel_sub:
+                ercot_sub = st.session_state.ercot_sel_sub
+                sub_df    = df[df["Substation"] == ercot_sub].copy()
 
-        st.markdown("---")
-        render_ercot_card(sel_sub, sub_df)
+                render_ercot_card(ercot_sub, sub_df)
 
-        # Full table
-        disp = ["Substation","Bus","kV","Zone","PSSE #","PSSE Name","Resource Node","Hub"]
-        st.dataframe(
-            sub_df[disp].sort_values(["kV"],ascending=[False]).reset_index(drop=True),
-            use_container_width=True,
-            height=min(320, 40 + len(sub_df)*35),
-            column_config={
-                "kV":   st.column_config.TextColumn(width="small"),
-                "Zone": st.column_config.TextColumn(width="small"),
-            }
-        )
+                disp = ["Substation","Bus","kV","Zone","PSSE #","PSSE Name","Resource Node","Hub"]
+                st.dataframe(
+                    sub_df[disp].sort_values("kV", ascending=False).reset_index(drop=True),
+                    use_container_width=True,
+                    height=min(320, 40 + len(sub_df)*35),
+                    column_config={
+                        "kV":   st.column_config.TextColumn(width="small"),
+                        "Zone": st.column_config.TextColumn(width="small"),
+                    }
+                )
 
-        c1, c2 = st.columns([1, 5])
-        with c1:
-            st.download_button(
-                "↓ Export Bus List",
-                data=to_csv_bytes(sub_df[disp]),
-                file_name=f"ercot_{sel_sub}.csv", mime="text/csv"
-            )
-        with c2:
-            st.info(f"💡 {len(sub_df)} buses found at **{sel_sub}**. Upload LMP data below to analyse prices.")
+                dl_col, info_col2 = st.columns([1, 4])
+                with dl_col:
+                    st.download_button("↓ Export Bus List",
+                        data=to_csv_bytes(sub_df[disp]),
+                        file_name=f"ercot_{ercot_sub}.csv", mime="text/csv")
+                with info_col2:
+                    st.info(f"💡 **{len(sub_df)}** buses at **{ercot_sub}** — upload DAM LMP below to analyse prices")
 
-        st.markdown("---")
-        render_lmp_section(sub_df, key_prefix="map_lmp")
+                st.markdown("---")
+                render_lmp_section(sub_df, key_prefix="map_lmp")
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # ██████████████████████  PAGE 2: NODE & HUB SELECTOR  █████████████████████
 # ═══════════════════════════════════════════════════════════════════════════════
 elif page == "⚡ Node & Hub Selector":
