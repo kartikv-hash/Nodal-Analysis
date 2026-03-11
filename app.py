@@ -21,170 +21,212 @@ st.set_page_config(
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ── PALETTE
+   bg:         #0e1117   dark charcoal
+   surface:    #161b27   deep navy card
+   surface2:   #1c2333   raised surface
+   border:     #2a3550   muted border
+   accent:     #34d399   emerald green  (primary)
+   accent2:    #818cf8   indigo violet  (secondary)
+   warn:       #f59e0b   amber
+   danger:     #f87171   rose
+   text:       #e2e8f0   near-white
+   muted:      #64748b   slate
+   faint:      #2a3550   very dim
+── */
 
 html, body, [data-testid="stAppViewContainer"] {
-    background-color: #0a0e14 !important;
-    font-family: 'IBM Plex Sans', sans-serif;
-    color: #e8f0f8;
+    background-color: #0e1117 !important;
+    font-family: 'Inter', sans-serif;
+    color: #e2e8f0;
 }
 [data-testid="stSidebar"] {
-    background-color: #111720 !important;
-    border-right: 1px solid #1e2d42;
+    background: linear-gradient(180deg, #10151f 0%, #0e1117 100%) !important;
+    border-right: 1px solid #2a3550;
 }
-[data-testid="stSidebar"] * { color: #e8f0f8 !important; }
+[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
 
-.page-header {
-    border-bottom: 1px solid #1e2d42;
-    padding-bottom: 14px; margin-bottom: 18px;
-}
+/* Page header */
+.page-header { border-bottom: 1px solid #2a3550; padding-bottom: 14px; margin-bottom: 18px; }
 .page-header .tag {
-    font-family:'IBM Plex Mono',monospace; font-size:10px; color:#00d4ff;
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:#34d399;
     letter-spacing:.2em; text-transform:uppercase; margin-bottom:4px;
 }
 .page-header h1 {
-    font-family:'IBM Plex Mono',monospace; font-size:22px;
-    font-weight:600; color:#e8f0f8; margin:0;
+    font-family:'JetBrains Mono',monospace; font-size:22px;
+    font-weight:600; color:#e2e8f0; margin:0;
 }
-.page-header h1 span { color:#00d4ff; }
+.page-header h1 span { color:#34d399; }
 
+/* Section label divider */
 .section-label {
-    font-family:'IBM Plex Mono',monospace; font-size:10px; color:#3a5070;
-    letter-spacing:.2em; text-transform:uppercase; margin:16px 0 8px;
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:#2a3550;
+    letter-spacing:.2em; text-transform:uppercase; margin:18px 0 10px;
     display:flex; align-items:center; gap:8px;
 }
-.section-label::after { content:''; flex:1; height:1px; background:#1e2d42; }
+.section-label::after { content:''; flex:1; height:1px; background:#1c2333; }
 
+/* Step badge */
 .step-badge {
     display:inline-flex; align-items:center; justify-content:center;
     width:20px; height:20px; border-radius:50%;
-    background:#00d4ff; color:#000;
-    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700;
+    background:#34d399; color:#0e1117;
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
 }
 
-/* OSM substation info card */
+/* OSM card */
 .osm-card {
-    background:#0f1a24; border:1px solid rgba(0,212,255,0.3);
-    border-left:3px solid #00d4ff; border-radius:6px;
-    padding:14px 18px; margin-bottom:12px;
+    background:#161b27; border:1px solid rgba(52,211,153,0.25);
+    border-left:3px solid #34d399; border-radius:8px;
+    padding:16px 20px; margin-bottom:14px;
 }
 .osm-card .oc-title {
-    font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600;
-    color:#00d4ff; margin-bottom:10px;
+    font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:600;
+    color:#34d399; margin-bottom:12px;
 }
-.osm-card .oc-grid { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:10px; }
+.osm-card .oc-grid { display:flex; flex-wrap:wrap; gap:16px; margin-bottom:10px; }
 .osm-card .oc-item .oc-lbl {
-    font-family:'IBM Plex Mono',monospace; font-size:9px; color:#3a5070;
+    font-family:'JetBrains Mono',monospace; font-size:9px; color:#64748b;
     letter-spacing:.15em; text-transform:uppercase;
 }
 .osm-card .oc-item .oc-val {
-    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:500;
-    color:#e8f0f8; margin-top:2px;
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500;
+    color:#e2e8f0; margin-top:2px;
 }
 
-/* ERCOT resolved card */
+/* ERCOT card */
 .ercot-card {
-    background:#111720; border:1px solid rgba(255,107,53,0.3);
-    border-left:3px solid #ff6b35; border-radius:6px;
-    padding:14px 18px; margin-bottom:12px;
+    background:#161b27; border:1px solid rgba(129,140,248,0.3);
+    border-left:3px solid #818cf8; border-radius:8px;
+    padding:16px 20px; margin-bottom:14px;
 }
 .ercot-card h3 {
-    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600;
-    color:#ff6b35; margin:0 0 10px;
+    font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:600;
+    color:#818cf8; margin:0 0 12px;
 }
-.dg { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:8px; }
+.dg { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:10px; }
 .di .dl {
-    font-family:'IBM Plex Mono',monospace; font-size:9px; color:#3a5070;
+    font-family:'JetBrains Mono',monospace; font-size:9px; color:#64748b;
     letter-spacing:.15em; text-transform:uppercase;
 }
 .di .dv {
-    font-family:'IBM Plex Mono',monospace; font-size:12px;
-    font-weight:500; color:#e8f0f8; margin-top:2px;
+    font-family:'JetBrains Mono',monospace; font-size:12px;
+    font-weight:500; color:#e2e8f0; margin-top:2px;
 }
 
 /* Tag pills */
 .tag-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
-.tag-bus  { display:inline-block; padding:2px 8px; border-radius:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500; background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.25); color:#00d4ff; }
-.tag-zone { display:inline-block; padding:2px 8px; border-radius:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; background:rgba(57,211,83,0.08); border:1px solid rgba(57,211,83,0.25); color:#39d353; }
-.tag-psse { display:inline-block; padding:2px 8px; border-radius:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; background:rgba(255,107,53,0.08); border:1px solid rgba(255,107,53,0.25); color:#ff6b35; }
-.tag-hub  { display:inline-block; padding:2px 8px; border-radius:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; background:rgba(255,204,0,0.08); border:1px solid rgba(255,204,0,0.25); color:#ffcc00; }
-.tag-rn   { display:inline-block; padding:2px 8px; border-radius:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; background:rgba(57,211,83,0.06); border:1px solid rgba(57,211,83,0.2); color:#39d353; }
+.tag-bus  { display:inline-block; padding:2px 9px; border-radius:12px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:500; background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.3); color:#34d399; }
+.tag-zone { display:inline-block; padding:2px 9px; border-radius:12px; font-family:'JetBrains Mono',monospace; font-size:11px; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; }
+.tag-psse { display:inline-block; padding:2px 9px; border-radius:12px; font-family:'JetBrains Mono',monospace; font-size:11px; background:rgba(129,140,248,0.08); border:1px solid rgba(129,140,248,0.3); color:#818cf8; }
+.tag-hub  { display:inline-block; padding:2px 9px; border-radius:12px; font-family:'JetBrains Mono',monospace; font-size:11px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); color:#f59e0b; }
+.tag-rn   { display:inline-block; padding:2px 9px; border-radius:12px; font-family:'JetBrains Mono',monospace; font-size:11px; background:rgba(52,211,153,0.06); border:1px solid rgba(52,211,153,0.2); color:#34d399; }
 
-/* kV badges */
-.kv { display:inline-block; padding:2px 8px; border-radius:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; }
-.kv-345 { color:#ff9933; background:rgba(255,153,51,0.1); border:1px solid rgba(255,153,51,0.3); }
-.kv-230 { color:#ffcc00; background:rgba(255,204,0,0.1); border:1px solid rgba(255,204,0,0.3); }
-.kv-138 { color:#00d4ff; background:rgba(0,212,255,0.1); border:1px solid rgba(0,212,255,0.3); }
-.kv-115 { color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); }
-.kv-69  { color:#39d353; background:rgba(57,211,83,0.1); border:1px solid rgba(57,211,83,0.3); }
-.kv-34  { color:#6b8aaa; background:rgba(107,138,170,0.1); border:1px solid rgba(107,138,170,0.3); }
+/* kV voltage badges */
+.kv { display:inline-block; padding:2px 9px; border-radius:12px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; }
+.kv-345 { color:#fb923c; background:rgba(251,146,60,0.1);  border:1px solid rgba(251,146,60,0.35); }
+.kv-230 { color:#f59e0b; background:rgba(245,158,11,0.1);  border:1px solid rgba(245,158,11,0.35); }
+.kv-138 { color:#34d399; background:rgba(52,211,153,0.1);  border:1px solid rgba(52,211,153,0.35); }
+.kv-115 { color:#818cf8; background:rgba(129,140,248,0.1); border:1px solid rgba(129,140,248,0.35); }
+.kv-69  { color:#38bdf8; background:rgba(56,189,248,0.1);  border:1px solid rgba(56,189,248,0.35); }
+.kv-34  { color:#64748b; background:rgba(100,116,139,0.1); border:1px solid rgba(100,116,139,0.35); }
 
-/* No-selection placeholder */
+/* Placeholders */
 .map-placeholder {
-    text-align:center; padding:40px 20px; color:#3a5070;
-    font-family:'IBM Plex Mono',monospace;
-    background:#0a0e14; border:1px dashed #1e2d42; border-radius:6px;
+    text-align:center; padding:40px 20px; color:#2a3550;
+    font-family:'JetBrains Mono',monospace;
+    background:#0e1117; border:1px dashed #1c2333; border-radius:8px;
 }
 .map-placeholder .mp-icon { font-size:32px; margin-bottom:10px; }
-.map-placeholder .mp-title { font-size:13px; font-weight:600; color:#1e2d42; margin-bottom:6px; }
-.map-placeholder .mp-sub { font-size:11px; line-height:1.6; }
+.map-placeholder .mp-title { font-size:13px; font-weight:600; color:#2a3550; margin-bottom:6px; }
+.map-placeholder .mp-sub { font-size:11px; line-height:1.7; color:#3d4f6b; }
 
 /* Hint bar */
 .hint-bar {
-    background:#0f1a24; border:1px solid #1e2d42; border-radius:4px;
-    padding:8px 14px; font-family:'IBM Plex Mono',monospace;
-    font-size:11px; color:#3a5070; margin-bottom:10px;
-    display:flex; align-items:center; gap:8px;
+    background:#161b27; border:1px solid #2a3550; border-radius:6px;
+    padding:8px 16px; font-family:'JetBrains Mono',monospace;
+    font-size:11px; color:#64748b; margin-bottom:12px;
+    display:flex; align-items:center; gap:10px;
 }
 
-/* Confidence badge */
-.conf-high  { color:#39d353; font-weight:600; }
-.conf-med   { color:#ffcc00; font-weight:600; }
-.conf-low   { color:#ff6b35; font-weight:600; }
+/* Confidence */
+.conf-high { color:#34d399; font-weight:600; }
+.conf-med  { color:#f59e0b; font-weight:600; }
+.conf-low  { color:#f87171; font-weight:600; }
 
-/* Match row */
-.match-row {
-    display:flex; align-items:center; justify-content:space-between;
-    background:#192030; border:1px solid #1e2d42; border-radius:4px;
-    padding:8px 12px; margin-bottom:6px; cursor:pointer;
-    font-family:'IBM Plex Mono',monospace; font-size:12px;
+/* Streamlit component overrides */
+.stTabs [data-baseweb="tab-list"] {
+    background:transparent;
+    border-bottom:1px solid #2a3550;
 }
-.match-row:hover { border-color:#00d4ff; }
-.match-row .mr-name { color:#e8f0f8; font-weight:500; }
-.match-row .mr-meta { color:#3a5070; font-size:10px; }
-
-/* Streamlit overrides */
-.stTabs [data-baseweb="tab-list"] { background:transparent; border-bottom:1px solid #1e2d42; }
-.stTabs [data-baseweb="tab"] { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:#3a5070; background:transparent; padding:10px 18px; }
-.stTabs [aria-selected="true"] { color:#00d4ff !important; border-bottom:2px solid #00d4ff !important; }
+.stTabs [data-baseweb="tab"] {
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:500;
+    letter-spacing:.08em; text-transform:uppercase;
+    color:#64748b; background:transparent; padding:10px 20px;
+}
+.stTabs [aria-selected="true"] {
+    color:#34d399 !important;
+    border-bottom:2px solid #34d399 !important;
+}
 
 .stTextInput input, div[data-baseweb="select"] > div {
-    background-color:#111720 !important; border-color:#1e2d42 !important;
-    color:#e8f0f8 !important; font-family:'IBM Plex Mono',monospace !important;
+    background-color:#161b27 !important; border-color:#2a3550 !important;
+    color:#e2e8f0 !important; font-family:'JetBrains Mono',monospace !important;
+    border-radius:6px !important;
 }
+.stNumberInput input {
+    background-color:#161b27 !important; border-color:#2a3550 !important;
+    color:#e2e8f0 !important; font-family:'JetBrains Mono',monospace !important;
+}
+
 .stDownloadButton button, .stButton button {
-    background:transparent !important; border:1px solid #1e2d42 !important;
-    color:#6b8aaa !important; font-family:'IBM Plex Mono',monospace !important;
+    background:#161b27 !important; border:1px solid #2a3550 !important;
+    color:#64748b !important; font-family:'JetBrains Mono',monospace !important;
     font-size:11px !important; font-weight:600 !important;
-    letter-spacing:.08em !important; text-transform:uppercase !important; border-radius:4px !important;
+    letter-spacing:.08em !important; text-transform:uppercase !important;
+    border-radius:6px !important; transition:all .15s !important;
 }
 .stDownloadButton button:hover, .stButton button:hover {
-    border-color:#00d4ff !important; color:#00d4ff !important;
+    border-color:#34d399 !important; color:#34d399 !important;
+    background:#0e1a14 !important;
 }
+
+/* Primary button (search) */
+[data-testid="stButton"] button[kind="primary"] {
+    background:linear-gradient(135deg,#34d399,#059669) !important;
+    border:none !important; color:#0e1117 !important;
+    font-weight:700 !important;
+}
+[data-testid="stButton"] button[kind="primary"]:hover {
+    background:linear-gradient(135deg,#6ee7b7,#34d399) !important;
+    color:#0e1117 !important;
+}
+
 [data-testid="stMetric"] {
-    background:#111720; border:1px solid #1e2d42;
-    border-radius:6px; padding:12px 16px;
+    background:#161b27; border:1px solid #2a3550;
+    border-radius:8px; padding:14px 18px;
 }
 [data-testid="stMetricLabel"] {
-    font-family:'IBM Plex Mono',monospace !important; font-size:10px !important;
-    color:#3a5070 !important; text-transform:uppercase; letter-spacing:.1em;
+    font-family:'JetBrains Mono',monospace !important; font-size:10px !important;
+    color:#64748b !important; text-transform:uppercase; letter-spacing:.1em;
 }
 [data-testid="stMetricValue"] {
-    font-family:'IBM Plex Mono',monospace !important;
-    color:#00d4ff !important; font-size:22px !important;
+    font-family:'JetBrains Mono',monospace !important;
+    color:#34d399 !important; font-size:24px !important;
 }
-div[data-testid="stMarkdownContainer"] p { color:#6b8aaa; font-size:13px; }
-hr { border-color:#1e2d42 !important; }
+
+[data-testid="stCheckbox"] label { font-family:'JetBrains Mono',monospace !important; font-size:11px !important; }
+
+div[data-testid="stMarkdownContainer"] p { color:#64748b; font-size:13px; }
+hr { border-color:#2a3550 !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:#0e1117; }
+::-webkit-scrollbar-thumb { background:#2a3550; border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:#34d399; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -418,8 +460,8 @@ def build_infrastructure_map(center_lat=31.5, center_lon=-97.5, zoom=7,
             icon=folium.DivIcon(html="""
                 <div style="
                     width:16px; height:16px; border-radius:50%;
-                    background:#ffffff; border:3px solid #00d4ff;
-                    box-shadow:0 0 8px #00d4ff; margin:-8px 0 0 -8px;">
+                    background:#ffffff; border:3px solid #34d399;
+                    box-shadow:0 0 8px #34d399; margin:-8px 0 0 -8px;">
                 </div>"""),
             tooltip="You clicked here",
         ).add_to(m)
@@ -432,10 +474,10 @@ def build_infrastructure_map(center_lat=31.5, center_lon=-97.5, zoom=7,
             # Colour by voltage
             try:
                 v = float(sub.get("voltage","0").split(";")[0]) / 1000
-                if v >= 345:   col = "#ff9933"
-                elif v >= 230: col = "#ffcc00"
-                elif v >= 138: col = "#00d4ff"
-                elif v >= 69:  col = "#39d353"
+                if v >= 345:   col = "#fb923c"
+                elif v >= 230: col = "#f59e0b"
+                elif v >= 138: col = "#34d399"
+                elif v >= 69:  col = "#34d399"
                 else:          col = "#8899aa"
             except:
                 col = "#8899aa"
@@ -448,15 +490,15 @@ def build_infrastructure_map(center_lat=31.5, center_lon=-97.5, zoom=7,
 
             # Popup HTML
             popup_html = f"""
-<div style="font-family:'IBM Plex Mono',monospace;background:#0f1a24;color:#e8f0f8;
-     padding:12px 14px;border-radius:6px;min-width:200px;border:1px solid #1e2d42;">
-  <div style="font-size:13px;font-weight:600;color:{'#00d4ff' if is_selected else '#ff6b35'};margin-bottom:8px">
+<div style="font-family:'JetBrains Mono',monospace;background:#161b27;color:#e2e8f0;
+     padding:12px 14px;border-radius:6px;min-width:200px;border:1px solid #2a3550;">
+  <div style="font-size:13px;font-weight:600;color:{'#34d399' if is_selected else '#818cf8'};margin-bottom:8px">
     {'✓ ' if is_selected else ''}{name}
   </div>
-  <div style="font-size:10px;color:#3a5070;margin-bottom:2px">VOLTAGE</div>
+  <div style="font-size:10px;color:#4a6080;margin-bottom:2px">VOLTAGE</div>
   <div style="font-size:12px;margin-bottom:6px">{v_label}</div>
-  {'<div style="font-size:10px;color:#3a5070;margin-bottom:2px">OPERATOR</div><div style="font-size:11px;margin-bottom:6px">'+op+'</div>' if op else ''}
-  <div style="font-size:10px;color:#3a5070">Distance: {dist_km:.1f} km from click</div>
+  {'<div style="font-size:10px;color:#4a6080;margin-bottom:2px">OPERATOR</div><div style="font-size:11px;margin-bottom:6px">'+op+'</div>' if op else ''}
+  <div style="font-size:10px;color:#4a6080">Distance: {dist_km:.1f} km from click</div>
 </div>"""
 
             folium.CircleMarker(
@@ -483,7 +525,7 @@ def render_lmp_section(resolved_df, key_prefix="lmp"):
     st.markdown(f"""
     <div class="section-label"><span class="step-badge">+</span> Upload DAM Hourly LMP Data</div>
     <p>Upload ERCOT DAM Hourly LMP CSV — app auto-matches your buses and plots prices.<br>
-    <span style="font-size:11px;color:#3a5070;font-family:'IBM Plex Mono',monospace">
+    <span style="font-size:11px;color:#4a6080;font-family:'JetBrains Mono',monospace">
     Source: ERCOT MIS → Reports → DAM Settlement Point Prices (CSV)
     </span></p>
     """, unsafe_allow_html=True)
@@ -492,9 +534,9 @@ def render_lmp_section(resolved_df, key_prefix="lmp"):
                                  label_visibility="collapsed")
     if not lmp_file:
         st.markdown("""
-        <div style="background:#0f1a24;border:1px dashed #1e2d42;border-radius:6px;
-             padding:24px;text-align:center;font-family:'IBM Plex Mono',monospace;
-             font-size:11px;color:#3a5070">
+        <div style="background:#161b27;border:1px dashed #2a3550;border-radius:6px;
+             padding:24px;text-align:center;font-family:'JetBrains Mono',monospace;
+             font-size:11px;color:#4a6080">
             Drag and drop your ERCOT DAM LMP CSV here<br>
             <span style="font-size:10px;margin-top:4px;display:block">
             Expected: Settlement Point Name · Hour Ending · Settlement Point Price
@@ -614,34 +656,34 @@ def render_ercot_card(sub_name, sub_df):
     hubs      = sub_df[sub_df["Hub"]!=""]["Hub"].unique().tolist()
 
     bus_tags  = "".join(f'<span class="tag-bus">{b}</span>' for b in buses[:30])
-    more_b    = f'<span style="color:#3a5070;font-size:11px;font-family:IBM Plex Mono,monospace">+{len(buses)-30} more</span>' if len(buses)>30 else ""
+    more_b    = f'<span style="color:#4a6080;font-size:11px;font-family:JetBrains Mono,monospace">+{len(buses)-30} more</span>' if len(buses)>30 else ""
     zone_tags = "".join(f'<span class="tag-zone">{z}</span>' for z in zones)
     psse_tags = "".join(f'<span class="tag-psse">{p}</span>' for p in psse_nums[:20])
-    more_p    = f'<span style="color:#3a5070;font-size:11px;font-family:IBM Plex Mono,monospace">+{len(psse_nums)-20} more</span>' if len(psse_nums)>20 else ""
-    hub_tags  = "".join(f'<span class="tag-hub">{h}</span>' for h in hubs) if hubs else '<span style="color:#3a5070;font-size:11px;font-family:IBM Plex Mono,monospace">—</span>'
+    more_p    = f'<span style="color:#4a6080;font-size:11px;font-family:JetBrains Mono,monospace">+{len(psse_nums)-20} more</span>' if len(psse_nums)>20 else ""
+    hub_tags  = "".join(f'<span class="tag-hub">{h}</span>' for h in hubs) if hubs else '<span style="color:#4a6080;font-size:11px;font-family:JetBrains Mono,monospace">—</span>'
     kv_tags   = "".join(f'<span class="kv {kv_cls(k)}">{k} kV</span>' for k in kvs)
     rn_tags   = "".join(f'<span class="tag-rn">{r}</span>' for r in rn_list[:10])
-    more_rn   = f'<span style="color:#3a5070;font-size:11px;font-family:IBM Plex Mono,monospace">+{len(rn_list)-10} more</span>' if len(rn_list)>10 else ""
+    more_rn   = f'<span style="color:#4a6080;font-size:11px;font-family:JetBrains Mono,monospace">+{len(rn_list)-10} more</span>' if len(rn_list)>10 else ""
 
     st.markdown(f"""
     <div class="ercot-card">
         <h3>⚡ ERCOT Substation: {sub_name}</h3>
         <div class="dg">
-            <div class="di"><div class="dl">Total Buses</div><div class="dv" style="color:#00d4ff">{len(buses)}</div></div>
+            <div class="di"><div class="dl">Total Buses</div><div class="dv" style="color:#34d399">{len(buses)}</div></div>
             <div class="di"><div class="dl">Voltage(s)</div><div class="dv">{kv_tags}</div></div>
             <div class="di"><div class="dl">Zone(s)</div><div class="dv">{zone_tags}</div></div>
             <div class="di"><div class="dl">Hub(s)</div><div class="dv">{hub_tags}</div></div>
-            <div class="di"><div class="dl">Resource Nodes</div><div class="dv" style="color:#39d353">{len(rn_list)}</div></div>
+            <div class="di"><div class="dl">Resource Nodes</div><div class="dv" style="color:#34d399">{len(rn_list)}</div></div>
         </div>
         <div style="margin-bottom:10px">
-            <div class="dl" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a5070;letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px">Bus Names (Settlement Points)</div>
+            <div class="dl" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#4a6080;letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px">Bus Names (Settlement Points)</div>
             <div class="tag-row">{bus_tags}{more_b}</div>
         </div>
         <div style="margin-bottom:10px">
-            <div class="dl" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a5070;letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px">PSSE Bus Numbers</div>
+            <div class="dl" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#4a6080;letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px">PSSE Bus Numbers</div>
             <div class="tag-row">{psse_tags}{more_p}</div>
         </div>
-        {'<div><div class="dl" style="font-family:IBM Plex Mono,monospace;font-size:9px;color:#3a5070;letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px">Resource Nodes</div><div class="tag-row">' + rn_tags + more_rn + '</div></div>' if rn_list else ''}
+        {'<div><div class="dl" style="font-family:JetBrains Mono,monospace;font-size:9px;color:#4a6080;letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px">Resource Nodes</div><div class="tag-row">' + rn_tags + more_rn + '</div></div>' if rn_list else ''}
     </div>
     """, unsafe_allow_html=True)
 
@@ -652,10 +694,10 @@ def render_ercot_card(sub_name, sub_df):
 with st.sidebar:
     st.markdown("""
     <div style="padding:14px 0 16px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#00d4ff;
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#34d399;
              letter-spacing:.2em;text-transform:uppercase;margin-bottom:5px">⚡ SunStripe · ERCOT</div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;
-             color:#e8f0f8;line-height:1.4">Nodal Analysis<br><span style="color:#00d4ff">Platform</span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;
+             color:#e2e8f0;line-height:1.4">Nodal Analysis<br><span style="color:#34d399">Platform</span></div>
     </div>
     """, unsafe_allow_html=True)
     st.markdown("---")
@@ -670,28 +712,28 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(f"""
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a5070;
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#4a6080;
          letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px">Dataset · Feb 2026</div>
     <div style="display:flex;flex-direction:column;gap:9px">
-        <div><div style="font-size:17px;font-weight:600;color:#00d4ff">{len(df):,}</div>
-             <div style="font-size:10px;color:#3a5070">Settlement Points</div></div>
-        <div><div style="font-size:17px;font-weight:600;color:#ff6b35">{df["Substation"].nunique():,}</div>
-             <div style="font-size:10px;color:#3a5070">Substations</div></div>
-        <div><div style="font-size:17px;font-weight:600;color:#ffcc00">{df[df["Hub"]!=""]["Hub"].nunique()}</div>
-             <div style="font-size:10px;color:#3a5070">Hubs</div></div>
-        <div><div style="font-size:17px;font-weight:600;color:#39d353">{df[df["Resource Node"]!=""].shape[0]:,}</div>
-             <div style="font-size:10px;color:#3a5070">Resource Nodes</div></div>
+        <div><div style="font-size:17px;font-weight:600;color:#34d399">{len(df):,}</div>
+             <div style="font-size:10px;color:#4a6080">Settlement Points</div></div>
+        <div><div style="font-size:17px;font-weight:600;color:#818cf8">{df["Substation"].nunique():,}</div>
+             <div style="font-size:10px;color:#4a6080">Substations</div></div>
+        <div><div style="font-size:17px;font-weight:600;color:#f59e0b">{df[df["Hub"]!=""]["Hub"].nunique()}</div>
+             <div style="font-size:10px;color:#4a6080">Hubs</div></div>
+        <div><div style="font-size:17px;font-weight:600;color:#34d399">{df[df["Resource Node"]!=""].shape[0]:,}</div>
+             <div style="font-size:10px;color:#4a6080">Resource Nodes</div></div>
     </div>
     """, unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("""
     <a href="https://ercot-bess-dashboard-nhh9eztsqeuqxxuz97kacu.streamlit.app/" target="_blank"
-       style="display:block;padding:7px 10px;background:#192030;border-radius:4px;
-              font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b8aaa;
+       style="display:block;padding:7px 10px;background:#1c2333;border-radius:4px;
+              font-family:'JetBrains Mono',monospace;font-size:11px;color:#64748b;
               text-decoration:none;margin-bottom:5px">⚡ ERCOT BESS Dashboard ↗</a>
     <a href="https://fatal-flaw-o7aks4agtoffgyydbvrguj.streamlit.app/" target="_blank"
-       style="display:block;padding:7px 10px;background:#192030;border-radius:4px;
-              font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b8aaa;
+       style="display:block;padding:7px 10px;background:#1c2333;border-radius:4px;
+              font-family:'JetBrains Mono',monospace;font-size:11px;color:#64748b;
               text-decoration:none">🌿 SiteIQ Fatal Flaw ↗</a>
     """, unsafe_allow_html=True)
 
@@ -718,35 +760,35 @@ if page == "🗺️ Infrastructure Map":
             st.session_state[k] = v
 
     # ── SEARCH PARAMETERS ────────────────────────────────────────────────────
-    st.markdown('<div style="background:#111720;border:1px solid #1e2d42;border-radius:8px;padding:18px 20px;margin-bottom:18px;">', unsafe_allow_html=True)
-    st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:9px;color:#3a5070;letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px">SEARCH PARAMETERS</div>', unsafe_allow_html=True)
+    st.markdown('<div style="background:#161b27;border:1px solid #2a3550;border-radius:8px;padding:18px 20px;margin-bottom:18px;">', unsafe_allow_html=True)
+    st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#4a6080;letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px">SEARCH PARAMETERS</div>', unsafe_allow_html=True)
 
     col_lat, col_lon, col_radius, col_thresh = st.columns([2, 2, 2, 2])
 
     with col_lat:
-        st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin-bottom:4px">Latitude</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:#64748b;margin-bottom:4px">Latitude</div>', unsafe_allow_html=True)
         lat_input = st.number_input("lat", value=st.session_state.search_lat,
             format="%.6f", label_visibility="collapsed", key="lat_input",
             min_value=25.0, max_value=37.0, step=0.001)
 
     with col_lon:
-        st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin-bottom:4px">Longitude</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:#64748b;margin-bottom:4px">Longitude</div>', unsafe_allow_html=True)
         lon_input = st.number_input("lon", value=st.session_state.search_lon,
             format="%.6f", label_visibility="collapsed", key="lon_input",
             min_value=-107.0, max_value=-93.0, step=0.001)
 
     with col_radius:
-        st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin-bottom:4px">Search Radius (miles)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:#64748b;margin-bottom:4px">Search Radius (miles)</div>', unsafe_allow_html=True)
         radius_miles = st.selectbox("radius", [5, 10, 15, 25, 35, 50, 75, 100],
             index=3, label_visibility="collapsed", key="radius_sel")
 
     with col_thresh:
-        st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin-bottom:4px">Hub Threshold (kV ≥)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:#64748b;margin-bottom:4px">Hub Threshold (kV ≥)</div>', unsafe_allow_html=True)
         hub_thresh = st.selectbox("thresh", [115, 138, 230, 345],
             index=2, label_visibility="collapsed", key="hub_thresh")
 
     # Voltage filter pills
-    st.markdown('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#6b8aaa;margin:12px 0 6px">Filter Voltages</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:#64748b;margin:12px 0 6px">Filter Voltages</div>', unsafe_allow_html=True)
     kv_options = ["34.5", "69", "115", "138", "230", "345", "500", "765"]
     kv_cols = st.columns(len(kv_options) + 1)
     kv_selected = []
@@ -760,7 +802,7 @@ if page == "🗺️ Infrastructure Map":
     link_col, btn_col = st.columns([4, 1])
     with link_col:
         oim_url = f"https://openinframap.org/#10/{lat_input:.4f}/{lon_input:.4f}"
-        st.markdown(f'<a href="{oim_url}" target="_blank" style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#00d4ff;text-decoration:none;">🔗 Open this area in OpenInfraMap ↗</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{oim_url}" target="_blank" style="font-family:JetBrains Mono,monospace;font-size:11px;color:#34d399;text-decoration:none;">🔗 Open this area in OpenInfraMap ↗</a>', unsafe_allow_html=True)
     with btn_col:
         search_btn = st.button("🔍 Search Substations", use_container_width=True, key="search_btn",
                                type="primary")
@@ -864,11 +906,11 @@ out center tags;"""
 
     if results is None:
         st.markdown("""
-        <div style="text-align:center;padding:60px 20px;color:#3a5070;font-family:IBM Plex Mono,monospace;
-             background:#0a0e14;border:1px dashed #1e2d42;border-radius:8px;">
+        <div style="text-align:center;padding:60px 20px;color:#4a6080;font-family:JetBrains Mono,monospace;
+             background:#0e1117;border:1px dashed #2a3550;border-radius:8px;">
             <div style="font-size:40px;margin-bottom:12px">⚡</div>
-            <div style="font-size:14px;font-weight:600;color:#1e2d42;margin-bottom:6px">No search yet</div>
-            <div style="font-size:11px;line-height:1.7">Enter coordinates · set radius · click <strong style="color:#00d4ff">Search Substations</strong></div>
+            <div style="font-size:14px;font-weight:600;color:#2a3550;margin-bottom:6px">No search yet</div>
+            <div style="font-size:11px;line-height:1.7">Enter coordinates · set radius · click <strong style="color:#34d399">Search Substations</strong></div>
         </div>""", unsafe_allow_html=True)
 
     else:
@@ -910,7 +952,7 @@ out center tags;"""
         folium.Circle(
             location=[clat, clon],
             radius=results["radius_mi"] * 1609.34,
-            color="#ffcc00", weight=1, fill=False,
+            color="#f59e0b", weight=1, fill=False,
             dash_array="6 4", tooltip=f"{results['radius_mi']} mi radius"
         ).add_to(m)
 
@@ -918,8 +960,8 @@ out center tags;"""
         folium.Marker(
             location=[clat, clon],
             icon=folium.DivIcon(html="""
-                <div style="width:14px;height:14px;border-radius:50%;background:#ffcc00;
-                     border:2px solid #fff;box-shadow:0 0 6px #ffcc00;margin:-7px 0 0 -7px;"></div>"""),
+                <div style="width:14px;height:14px;border-radius:50%;background:#f59e0b;
+                     border:2px solid #fff;box-shadow:0 0 6px #f59e0b;margin:-7px 0 0 -7px;"></div>"""),
             tooltip="Search Centre",
         ).add_to(m)
 
@@ -934,20 +976,20 @@ out center tags;"""
             op       = el.get("operator","")
 
             # Colour: yellow=hub, cyan=node, white border if selected
-            fill_col = "#e040fb" if is_hub else "#00bcd4"
+            fill_col = "#c084fc" if is_hub else "#22d3ee"
             ring_col = "#ffffff" if is_sel else fill_col
             radius   = 11 if is_sel else (9 if is_hub else 7)
 
             popup_html = f"""
-<div style="font-family:IBM Plex Mono,monospace;background:#0f1a24;color:#e8f0f8;
-     padding:12px;border-radius:6px;min-width:210px;border:1px solid #1e2d42;">
-  <div style="font-size:12px;font-weight:600;color:{'#e040fb' if is_hub else '#00bcd4'};margin-bottom:8px">
+<div style="font-family:JetBrains Mono,monospace;background:#161b27;color:#e2e8f0;
+     padding:12px;border-radius:6px;min-width:210px;border:1px solid #2a3550;">
+  <div style="font-size:12px;font-weight:600;color:{'#c084fc' if is_hub else '#22d3ee'};margin-bottom:8px">
     {'🔮 HUB' if is_hub else '🔵 NODE'} &nbsp; {name}
   </div>
-  <div style="font-size:10px;color:#3a5070">VOLTAGE</div>
+  <div style="font-size:10px;color:#4a6080">VOLTAGE</div>
   <div style="font-size:12px;margin-bottom:5px">{v_label}</div>
-  {'<div style="font-size:10px;color:#3a5070">OPERATOR</div><div style="font-size:11px;margin-bottom:5px">'+op+'</div>' if op else ''}
-  <div style="font-size:10px;color:#3a5070">Distance</div>
+  {'<div style="font-size:10px;color:#4a6080">OPERATOR</div><div style="font-size:11px;margin-bottom:5px">'+op+'</div>' if op else ''}
+  <div style="font-size:10px;color:#4a6080">Distance</div>
   <div style="font-size:11px">{el["dist_mi"]:.1f} mi · {el["dist_km"]:.1f} km</div>
 </div>"""
 
@@ -968,12 +1010,12 @@ out center tags;"""
 
         # Legend
         st.markdown(f"""
-        <div style="display:flex;gap:20px;font-family:IBM Plex Mono,monospace;font-size:11px;
-             color:#6b8aaa;padding:6px 12px;background:#0a0e14;border:1px solid #1e2d42;
+        <div style="display:flex;gap:20px;font-family:JetBrains Mono,monospace;font-size:11px;
+             color:#64748b;padding:6px 12px;background:#0e1117;border:1px solid #2a3550;
              border-radius:4px;margin-top:6px;flex-wrap:wrap;">
-            <span>● <span style="color:#ffcc00">Search Centre</span></span>
-            <span>● <span style="color:#e040fb">Hub (≥{results["hub_thresh"]} kV)</span> — {len(hubs_list)} found</span>
-            <span>● <span style="color:#00bcd4">Node (&lt;{results["hub_thresh"]} kV)</span> — {len(node_list)} found</span>
+            <span>● <span style="color:#f59e0b">Search Centre</span></span>
+            <span>● <span style="color:#c084fc">Hub (≥{results["hub_thresh"]} kV)</span> — {len(hubs_list)} found</span>
+            <span>● <span style="color:#22d3ee">Node (&lt;{results["hub_thresh"]} kV)</span> — {len(node_list)} found</span>
             <span style="color:#1e4060">— — Radius boundary</span>
         </div>
         """, unsafe_allow_html=True)
@@ -991,44 +1033,48 @@ out center tags;"""
 
         def render_sub_list(sub_list, tab_prefix="t"):
             if not sub_list:
-                st.markdown('<div style="color:#3a5070;font-family:IBM Plex Mono,monospace;font-size:12px;padding:16px">No substations in this category.</div>', unsafe_allow_html=True)
+                st.caption("No substations in this category.")
                 return
             for el in sub_list:
-                name    = el.get("name") or "Unnamed Substation"
-                v       = el["volt_kv"]
-                v_label = f"{v:.0f} kV" if v else "? kV"
-                is_hub  = el["is_hub"]
-                is_sel  = (st.session_state.selected_osm and
-                           st.session_state.selected_osm.get("osm_id") == el["osm_id"])
+                name     = el.get("name") or "Unnamed Substation"
+                v        = el["volt_kv"]
+                v_label  = f"{v:.0f} kV" if v else "? kV"
+                is_hub   = el["is_hub"]
+                operator = el.get("operator") or ""
+                is_sel   = bool(st.session_state.selected_osm and
+                                st.session_state.selected_osm.get("osm_id") == el["osm_id"])
 
-                border = "border-color:rgba(224,64,251,0.5)" if is_hub else "border-color:rgba(0,188,212,0.3)"
+                dot_col  = "#c084fc" if is_hub else "#22d3ee"
+                hub_bdg  = ('<span style="font-size:9px;background:rgba(192,132,252,0.12);'
+                            'border:1px solid rgba(192,132,252,0.35);color:#c084fc;border-radius:3px;'
+                            'padding:1px 6px;margin-left:6px;font-family:JetBrains Mono,monospace">'
+                            'HUB</span>') if is_hub else ""
                 if is_sel:
-                    border = "border-color:#ffffff"
-
+                    bdr = "2px solid #e2eaf4"
+                    bgc = "rgba(34,211,238,0.04)"
+                elif is_hub:
+                    bdr = "1px solid rgba(192,132,252,0.3)"
+                    bgc = "#161b27"
+                else:
+                    bdr = "1px solid rgba(34,211,238,0.12)"
+                    bgc = "#161b27"
+                op_part = (f'<span style="color:#4a6080">{operator} · </span>') if operator else ""
+                html = (
+                    f'<div style="background:{bgc};border:{bdr};border-radius:7px;padding:10px 14px;margin-bottom:4px;">' +
+                    f'<div style="display:flex;justify-content:space-between;align-items:center">' +
+                    f'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:600;color:{dot_col}">● {name}</div>' +
+                    hub_bdg +
+                    f'<div style="text-align:right">' +
+                    f'<div style="font-family:JetBrains Mono,monospace;font-size:11px;color:#e2eaf4">{v_label}</div>' +
+                    f'<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:#4a6080">{el["dist_mi"]:.1f} mi</div>' +
+                    f'</div></div>' +
+                    f'<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:#4a6080;margin-top:3px">' +
+                    op_part +
+                    f'{el["lat"]:.4f}, {el["lon"]:.4f}</div></div>'
+                )
                 col_a, col_b = st.columns([5, 1])
                 with col_a:
-                    st.markdown(f"""
-                    <div style="background:#0f1a24;border:1px solid;{border};border-radius:6px;
-                         padding:10px 14px;margin-bottom:6px;cursor:pointer;">
-                        <div style="display:flex;justify-content:space-between;align-items:center">
-                            <div>
-                                <span style="font-family:IBM Plex Mono,monospace;font-size:12px;
-                                      font-weight:600;color:{'#e040fb' if is_hub else '#00bcd4'}">
-                                    {'🔮' if is_hub else '🔵'} {name}
-                                </span>
-                                {'<span style="font-size:10px;background:rgba(224,64,251,0.1);border:1px solid rgba(224,64,251,0.3);color:#e040fb;border-radius:3px;padding:1px 6px;margin-left:8px;font-family:IBM Plex Mono,monospace">HUB</span>' if is_hub else ''}
-                            </div>
-                            <div style="text-align:right">
-                                <div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#e8f0f8">{v_label}</div>
-                                <div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#3a5070">{el["dist_mi"]:.1f} mi</div>
-                            </div>
-                        </div>
-                        <div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#3a5070;margin-top:4px">
-                            {el.get("operator","") or ""}{" · " if el.get("operator") else ""}
-                            {el["lat"]:.4f}, {el["lon"]:.4f}
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(html, unsafe_allow_html=True)
                 with col_b:
                     if st.button("Inspect →", key=f"{tab_prefix}_{el['osm_id']}", use_container_width=True):
                         st.session_state.selected_osm  = el
@@ -1052,8 +1098,8 @@ out center tags;"""
 
             st.markdown("---")
             st.markdown(f"""
-            <div class="osm-card" style="border-left-color:{'#e040fb' if is_hub else '#00bcd4'}">
-                <div class="oc-title" style="color:{'#e040fb' if is_hub else '#00bcd4'}">
+            <div class="osm-card" style="border-left-color:{'#c084fc' if is_hub else '#22d3ee'}">
+                <div class="oc-title" style="color:{'#c084fc' if is_hub else '#22d3ee'}">
                     {'🔮 HUB' if is_hub else '🔵 NODE'} &nbsp; {osm_name}
                 </div>
                 <div class="oc-grid">
@@ -1151,7 +1197,7 @@ elif page == "⚡ Node & Hub Selector":
     sel_kv = st.session_state.sel_kv
     df_kv = df[df["kV"].isin(TRANS_KV)] if sel_kv == "All" else df[df["kV"] == sel_kv]
     kv_tag = f'<span class="kv {kv_cls(sel_kv) if sel_kv != "All" else "kv-138"}">{sel_kv} kV</span>'
-    st.markdown(f'<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#3a5070;margin:6px 0 4px">{kv_tag} → <span style="color:#e8f0f8">{len(df_kv):,}</span> settlement points | <span style="color:#e8f0f8">{df_kv["Substation"].nunique():,}</span> substations</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-family:JetBrains Mono,monospace;font-size:11px;color:#4a6080;margin:6px 0 4px">{kv_tag} → <span style="color:#e2e8f0">{len(df_kv):,}</span> settlement points | <span style="color:#e2e8f0">{df_kv["Substation"].nunique():,}</span> substations</div>', unsafe_allow_html=True)
 
     # Step 2: Substation
     st.markdown('<div class="section-label"><span class="step-badge">2</span> Select Substation(s)</div>', unsafe_allow_html=True)
@@ -1165,7 +1211,7 @@ elif page == "⚡ Node & Hub Selector":
             placeholder=f"Choose from {len(sub_list):,} substations...", label_visibility="collapsed")
 
     if not selected_subs:
-        st.markdown('<div style="text-align:center;padding:52px 20px;color:#3a5070;font-family:IBM Plex Mono,monospace;background:#0f1a24;border:1px dashed #1e2d42;border-radius:6px;margin-top:8px"><div style="font-size:32px;margin-bottom:10px">🏭</div>Select substations above to auto-resolve buses, zones & PSSE numbers</div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center;padding:52px 20px;color:#4a6080;font-family:JetBrains Mono,monospace;background:#161b27;border:1px dashed #2a3550;border-radius:6px;margin-top:8px"><div style="font-size:32px;margin-bottom:10px">🏭</div>Select substations above to auto-resolve buses, zones & PSSE numbers</div>', unsafe_allow_html=True)
         st.stop()
 
     resolved = df_kv[df_kv["Substation"].isin(selected_subs)].copy()
@@ -1205,13 +1251,13 @@ elif page == "🔍 Bus Lookup":
         exact = df[df["Bus"].str.upper() == q]
         if not exact.empty:
             r = exact.iloc[0]
-            st.markdown(f'<div class="ercot-card"><h3>▶ {r["Bus"]}</h3><div class="dg"><div class="di"><div class="dl">Substation</div><div class="dv" style="color:#ff6b35">{r["Substation"]}</div></div><div class="di"><div class="dl">Voltage</div><div class="dv"><span class="kv {kv_cls(r["kV"])}">{r["kV"]} kV</span></div></div><div class="di"><div class="dl">Zone</div><div class="dv" style="color:#39d353">{r["Zone"]}</div></div><div class="di"><div class="dl">PSSE Name</div><div class="dv">{r["PSSE Name"] or "—"}</div></div><div class="di"><div class="dl">PSSE #</div><div class="dv">{r["PSSE #"] or "—"}</div></div><div class="di"><div class="dl">Resource Node</div><div class="dv">{r["Resource Node"] or "—"}</div></div><div class="di"><div class="dl">Hub</div><div class="dv">{r["Hub"] or "—"}</div></div></div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="ercot-card"><h3>▶ {r["Bus"]}</h3><div class="dg"><div class="di"><div class="dl">Substation</div><div class="dv" style="color:#818cf8">{r["Substation"]}</div></div><div class="di"><div class="dl">Voltage</div><div class="dv"><span class="kv {kv_cls(r["kV"])}">{r["kV"]} kV</span></div></div><div class="di"><div class="dl">Zone</div><div class="dv" style="color:#34d399">{r["Zone"]}</div></div><div class="di"><div class="dl">PSSE Name</div><div class="dv">{r["PSSE Name"] or "—"}</div></div><div class="di"><div class="dl">PSSE #</div><div class="dv">{r["PSSE #"] or "—"}</div></div><div class="di"><div class="dl">Resource Node</div><div class="dv">{r["Resource Node"] or "—"}</div></div><div class="di"><div class="dl">Hub</div><div class="dv">{r["Hub"] or "—"}</div></div></div></div>', unsafe_allow_html=True)
         st.markdown(f"**{len(results):,}** results for `{bus_q.strip()}`")
         disp = ["Bus","PSSE Name","kV","Substation","Zone","Resource Node","PSSE #"]
         st.dataframe(results[disp].reset_index(drop=True), use_container_width=True, height=min(400,40+len(results)*35))
         if len(results): st.download_button("↓ Export CSV", data=to_csv_bytes(results[disp]), file_name=f"bus_{bus_q.strip()}.csv", mime="text/csv")
     else:
-        st.markdown('<div style="text-align:center;padding:60px;color:#3a5070;font-family:IBM Plex Mono,monospace"><div style="font-size:36px;margin-bottom:12px">⚡</div>Enter a bus name above</div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center;padding:60px;color:#4a6080;font-family:JetBrains Mono,monospace"><div style="font-size:36px;margin-bottom:12px">⚡</div>Enter a bus name above</div>', unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1237,7 +1283,7 @@ elif page == "🏭 Substation Lookup":
         st.dataframe(results[disp].reset_index(drop=True), use_container_width=True, height=min(400,40+len(results)*35))
         if len(results): st.download_button("↓ Export CSV", data=to_csv_bytes(results[disp]), file_name=f"sub_{sub_q.strip()}.csv", mime="text/csv")
     else:
-        st.markdown('<div style="text-align:center;padding:60px;color:#3a5070;font-family:IBM Plex Mono,monospace"><div style="font-size:36px;margin-bottom:12px">🏭</div>Enter a substation name above</div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center;padding:60px;color:#4a6080;font-family:JetBrains Mono,monospace"><div style="font-size:36px;margin-bottom:12px">🏭</div>Enter a substation name above</div>', unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
