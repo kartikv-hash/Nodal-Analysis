@@ -989,7 +989,7 @@ out center tags;"""
             f"🔵 Nodes ({len(node_list)})",
         ])
 
-        def render_sub_list(sub_list):
+        def render_sub_list(sub_list, tab_prefix="t"):
             if not sub_list:
                 st.markdown('<div style="color:#3a5070;font-family:IBM Plex Mono,monospace;font-size:12px;padding:16px">No substations in this category.</div>', unsafe_allow_html=True)
                 return
@@ -1030,14 +1030,14 @@ out center tags;"""
                     </div>
                     """, unsafe_allow_html=True)
                 with col_b:
-                    if st.button("Inspect →", key=f"sel_{el['osm_id']}", use_container_width=True):
+                    if st.button("Inspect →", key=f"{tab_prefix}_{el['osm_id']}", use_container_width=True):
                         st.session_state.selected_osm  = el
                         st.session_state.ercot_sel_sub = None
                         st.rerun()
 
-        with tab_all:   render_sub_list(elements)
-        with tab_hubs:  render_sub_list(hubs_list)
-        with tab_nodes: render_sub_list(node_list)
+        with tab_all:   render_sub_list(elements,   "all")
+        with tab_hubs:  render_sub_list(hubs_list,  "hub")
+        with tab_nodes: render_sub_list(node_list,  "nod")
 
         st.markdown('</div>', unsafe_allow_html=True)
 
