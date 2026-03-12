@@ -572,52 +572,90 @@ def generate_pdf_report(search_results, ercot_sub, sub_df, lmp_summary=None):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# Overpass search
+# Overpass search — with mirror fallback + adaptive timeout
 # ═══════════════════════════════════════════════════════════════════
+OVERPASS_MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://overpass.openstreetmap.ru/api/interpreter",
+]
+
+def _parse_overpass_elements(raw_elements, lat, lon):
+    elements = []
+    for el in raw_elements:
+        elat = el.get("lat") or (el.get("center") or {}).get("lat")
+        elon = el.get("lon") or (el.get("center") or {}).get("lon")
+        if not elat or not elon: continue
+        tags = el.get("tags", {})
+        raw_volt = tags.get("voltage", "")
+        try:
+            rv = float(raw_volt.split(";")[0].strip())
+            volt_kv = rv / 1000 if rv > 1000 else rv
+        except:
+            volt_kv = None
+        dist_km = haversine(lat, lon, elat, elon)
+        elements.append({
+            "lat": elat, "lon": elon,
+            "name": tags.get("name", ""),
+            "voltage": raw_volt, "volt_kv": volt_kv,
+            "operator": tags.get("operator", ""),
+            "ref": tags.get("ref", ""),
+            "osm_id": str(el.get("id", "")),
+            "dist_mi": round(dist_km / 1.60934, 2),
+            "dist_km": round(dist_km, 2),
+        })
+    elements.sort(key=lambda x: x["dist_mi"])
+    return elements
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def search_substations_radius(lat, lon, radius_mi):
     radius_m = int(radius_mi * 1609.34)
-    query = f"""[out:json][timeout:40];
+    # Use shorter server-side timeout for smaller radii to avoid gateway timeout
+    server_timeout = min(30, max(15, radius_mi))
+    query = f"""[out:json][timeout:{server_timeout}];
 (
   node["power"="substation"](around:{radius_m},{lat},{lon});
   way["power"="substation"](around:{radius_m},{lat},{lon});
   relation["power"="substation"](around:{radius_m},{lat},{lon});
 );
 out center tags;"""
-    try:
-        resp = requests.post("https://overpass-api.de/api/interpreter",
-            data={"data": query}, timeout=45,
-            headers={"User-Agent": "SunStripe-ERCOT/1.0"})
-        resp.raise_for_status()
-        elements = []
-        for el in resp.json().get("elements", []):
-            elat = el.get("lat") or (el.get("center") or {}).get("lat")
-            elon = el.get("lon") or (el.get("center") or {}).get("lon")
-            if not elat or not elon: continue
-            tags = el.get("tags", {})
-            raw_volt = tags.get("voltage", "")
-            try:
-                rv = float(raw_volt.split(";")[0].strip())
-                volt_kv = rv / 1000 if rv > 1000 else rv
-            except:
-                volt_kv = None
-            dist_km = haversine(lat, lon, elat, elon)
-            elements.append({
-                "lat": elat, "lon": elon,
-                "name": tags.get("name", ""),
-                "voltage": raw_volt, "volt_kv": volt_kv,
-                "operator": tags.get("operator", ""),
-                "ref": tags.get("ref", ""),
-                "osm_id": str(el.get("id", "")),
-                "dist_mi": round(dist_km / 1.60934, 2),
-                "dist_km": round(dist_km, 2),
-            })
-        elements.sort(key=lambda x: x["dist_mi"])
-        return elements, None
-    except requests.exceptions.Timeout:
-        return [], "Overpass API timed out. Try a smaller radius."
-    except Exception as e:
-        return [], f"Search error: {e}"
+
+    last_err = "Unknown error"
+    for mirror in OVERPASS_MIRRORS:
+        try:
+            resp = requests.post(
+                mirror,
+                data={"data": query},
+                timeout=(10, server_timeout + 15),   # (connect, read) timeouts
+                headers={"User-Agent": "SunStripe-ERCOT/1.0",
+                         "Accept-Encoding": "gzip"}
+            )
+            if resp.status_code == 504:
+                last_err = f"504 timeout on {mirror.split('/')[2]}"
+                continue
+            resp.raise_for_status()
+            raw = resp.json().get("elements", [])
+            elements = _parse_overpass_elements(raw, lat, lon)
+            return elements, None
+        except requests.exceptions.ConnectTimeout:
+            last_err = f"Connect timeout on {mirror.split('/')[2]}"
+            continue
+        except requests.exceptions.ReadTimeout:
+            last_err = f"Read timeout on {mirror.split('/')[2]} — try smaller radius"
+            continue
+        except requests.exceptions.HTTPError as e:
+            last_err = f"HTTP {e.response.status_code} on {mirror.split('/')[2]}"
+            continue
+        except Exception as e:
+            last_err = f"{mirror.split('/')[2]}: {str(e)[:60]}"
+            continue
+
+    return [], (
+        f"All Overpass mirrors failed ({last_err}). "
+        f"Try a **smaller radius** or wait 1–2 minutes and retry. "
+        f"Mirrors tried: {len(OVERPASS_MIRRORS)}"
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════
