@@ -870,74 +870,249 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
             # ── 24h Profile ──────────────────────────────────────
             elif uc_sel == "24h_profile":
                 bus_list = sorted(matched["_bus_up"].unique().tolist())
-                sel_bus = st.selectbox("Select Bus", bus_list, key=f"{key_prefix}_24h_bus")
-                bdf = matched[matched["_bus_up"]==sel_bus].sort_values("datetime")
 
-                # 24h average profile
-                if hasattr(bdf["datetime"].iloc[0], "hour"):
-                    bdf["hour_of_day"] = bdf["datetime"].dt.hour
+                # ── Bus selector + date picker ────────────────────
+                hc1, hc2, hc3 = st.columns([3, 2, 1])
+                with hc1:
+                    sel_bus = st.selectbox("Bus / Settlement Point",
+                        bus_list, key=f"{key_prefix}_24h_bus",
+                        label_visibility="collapsed")
+                bdf = matched[matched["_bus_up"] == sel_bus].copy()
+
+                # Ensure datetime is proper pandas Timestamp
+                bdf["datetime"] = pd.to_datetime(bdf["datetime"], errors="coerce")
+                bdf = bdf.dropna(subset=["datetime"]).sort_values("datetime")
+
+                if bdf.empty:
+                    st.warning("No data for this bus.")
                 else:
-                    bdf["hour_of_day"] = pd.to_numeric(bdf["datetime"], errors="coerce") % 24
+                    # ── Date range available ──────────────────────
+                    d_min = bdf["datetime"].dt.date.min()
+                    d_max = bdf["datetime"].dt.date.max()
+                    with hc2:
+                        sel_date = st.date_input(
+                            "Date", value=d_max,
+                            min_value=d_min, max_value=d_max,
+                            key=f"{key_prefix}_24h_date",
+                            label_visibility="collapsed"
+                        )
+                    with hc3:
+                        show_all = st.checkbox("All dates", value=(d_min==d_max),
+                                               key=f"{key_prefix}_24h_all")
 
-                hourly = bdf.groupby("hour_of_day")["price"].agg(["mean","min","max"]).reset_index()
-                hourly.columns = ["Hour", "Avg LMP", "Min LMP", "Max LMP"]
+                    # ── Filter to selected date or all ───────────
+                    if show_all or d_min == d_max:
+                        plot_df = bdf.copy()
+                        chart_title = f"LMP — {sel_bus}  ·  {d_min} → {d_max}"
+                    else:
+                        plot_df = bdf[bdf["datetime"].dt.date == sel_date].copy()
+                        chart_title = f"LMP — {sel_bus}  ·  {sel_date}  (24H)"
 
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=hourly["Hour"], y=hourly["Max LMP"], fill=None,
-                    mode="lines", line=dict(width=0), showlegend=False))
-                fig.add_trace(go.Scatter(x=hourly["Hour"], y=hourly["Min LMP"],
-                    fill="tonexty", fillcolor="rgba(0,200,255,0.1)",
-                    mode="lines", line=dict(width=0), name="Min-Max Range"))
-                fig.add_trace(go.Scatter(x=hourly["Hour"], y=hourly["Avg LMP"],
-                    mode="lines+markers", line=dict(color="#00ff9d", width=2.5),
-                    marker=dict(size=6, color="#00ff9d", symbol="circle"),
-                    name="Avg LMP"))
+                    if plot_df.empty:
+                        st.warning(f"No data for {sel_date}. Try 'All dates'.")
+                    else:
+                        # ── Resample to 15-min to smooth SCED 5-min noise ─
+                        plot_df = plot_df.set_index("datetime")
+                        plot_df = plot_df["price"].resample("15min").mean().reset_index()
+                        plot_df.columns = ["datetime", "price"]
+                        plot_df = plot_df.dropna()
 
-                # Rolling avg overlay
-                roll = hourly["Avg LMP"].rolling(3, center=True, min_periods=1)
-                fig.add_trace(go.Scatter(x=hourly["Hour"], y=roll.mean(),
-                    mode="lines", line=dict(color="#ff6b00", width=1.5, dash="dot"),
-                    name="Rolling Avg"))
+                        # ── MA3 (moving average 3-period = 45 min) ──────
+                        plot_df["ma3"] = plot_df["price"].rolling(3, center=True, min_periods=1).mean()
 
-                # BESS signal overlay
-                roll_mean = roll.mean()
-                charge_h    = hourly.loc[hourly["Avg LMP"] < roll_mean * 0.85, "Hour"].tolist()
-                discharge_h = hourly.loc[hourly["Avg LMP"] > roll_mean * 1.15, "Hour"].tolist()
-                for h in charge_h:
-                    fig.add_vrect(x0=h-0.4, x1=h+0.4, fillcolor="rgba(0,255,157,0.12)",
-                                  layer="below", line_width=0)
-                for h in discharge_h:
-                    fig.add_vrect(x0=h-0.4, x1=h+0.4, fillcolor="rgba(255,107,0,0.12)",
-                                  layer="below", line_width=0)
+                        # ── BESS signal ──────────────────────────────────
+                        roll = plot_df["price"].rolling(6, center=True, min_periods=1).mean()
+                        plot_df["signal"] = "HOLD"
+                        plot_df.loc[plot_df["price"] < roll * 0.88, "signal"] = "CHARGE"
+                        plot_df.loc[plot_df["price"] > roll * 1.12, "signal"] = "DISCHARGE"
 
-                fig.update_layout(**neon_plotly_layout(f"24-HOUR LMP PROFILE — {sel_bus}", 360))
-                fig.update_xaxes(title="Hour of Day (0–23)", dtick=2)
-                fig.update_yaxes(title="LMP ($/MWh)")
-                st.plotly_chart(fig, use_container_width=True)
+                        charge_df    = plot_df[plot_df["signal"] == "CHARGE"]
+                        discharge_df = plot_df[plot_df["signal"] == "DISCHARGE"]
 
-                # Annotation
-                st.markdown(f"""
-                <div style="font-family:Share Tech Mono,monospace;font-size:10px;color:#3a6080;
-                     display:flex;gap:20px;margin-top:-8px;padding:6px 10px;background:rgba(0,0,0,0.3);border-radius:3px">
-                    <span>🟩 Green bands = CHARGE windows</span>
-                    <span>🟧 Orange bands = DISCHARGE windows</span>
-                    <span>── Rolling 3h avg</span>
-                </div>
-                """, unsafe_allow_html=True)
+                        # ── Summary metrics ──────────────────────────────
+                        last_price = plot_df["price"].iloc[-1]
+                        avg_price  = plot_df["price"].mean()
+                        peak_price = plot_df["price"].max()
+                        peak_time  = plot_df.loc[plot_df["price"].idxmax(), "datetime"]
+                        volatility = plot_df["price"].std()
+                        pct_chg    = ((last_price - plot_df["price"].iloc[0]) / abs(plot_df["price"].iloc[0]) * 100) if plot_df["price"].iloc[0] != 0 else 0
+                        vol_label  = "HIGH" if volatility > 15 else "MOD" if volatility > 5 else "LOW"
+                        vol_color  = "#ff2d55" if volatility > 15 else "#ff6b00" if volatility > 5 else "#00ff9d"
 
-                # Also show full time series if dates available
-                if hasattr(bdf["datetime"].iloc[0], "date"):
-                    st.markdown('<div class="section-label" style="margin-top:16px">FULL TIME SERIES</div>', unsafe_allow_html=True)
-                    fig2 = go.Figure()
-                    for bus in matched["_bus_up"].unique()[:6]:
-                        bdf2 = matched[matched["_bus_up"]==bus].sort_values("datetime")
-                        col  = "#00ff9d" if bus==sel_bus else None
-                        fig2.add_trace(go.Scatter(x=bdf2["datetime"], y=bdf2["price"],
-                            mode="lines", name=bus,
-                            line=dict(color=col, width=2 if bus==sel_bus else 1)))
-                    fig2.update_layout(**neon_plotly_layout("LMP TIME SERIES", 280))
-                    fig2.update_yaxes(title="LMP ($/MWh)")
-                    st.plotly_chart(fig2, use_container_width=True)
+                        st.markdown(f"""
+                        <div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;
+                             letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px">
+                            SELECT BUS / SETTLEMENT POINT
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        m1, m2, m3, m4 = st.columns(4)
+                        m1.metric("⚡ LAST LMP",
+                            f"${last_price:.2f}",
+                            f"{pct_chg:+.1f}%",
+                            help="Most recent interval — $/MWh")
+                        m2.metric("◆ AVG LMP",
+                            f"${avg_price:.2f}",
+                            help="Period average — $/MWh")
+                        m3.metric("▲ PEAK LMP",
+                            f"${peak_price:.2f}",
+                            f"at {peak_time.strftime('%m-%d %H:%M')}",
+                            help="Highest price in period")
+                        m4.metric("~ VOLATILITY",
+                            f"{volatility:.1f}",
+                            vol_label,
+                            help="Std dev of LMP — HIGH/MOD/LOW")
+
+                        # ── Date range badge ─────────────────────────────
+                        st.markdown(f"""
+                        <div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;
+                             margin-bottom:8px">
+                            {len(plot_df):,} INTERVALS AVAILABLE &nbsp;·&nbsp;
+                            {d_min} → {d_max}
+                        </div>""", unsafe_allow_html=True)
+
+                        # ── MAIN CHART — full BESS-dashboard style ───────
+                        fig = go.Figure()
+
+                        # Shaded charge zones
+                        for _, row in charge_df.iterrows():
+                            fig.add_vrect(
+                                x0=row["datetime"] - pd.Timedelta(minutes=7),
+                                x1=row["datetime"] + pd.Timedelta(minutes=7),
+                                fillcolor="rgba(0,255,157,0.10)", layer="below", line_width=0
+                            )
+                        # Shaded discharge zones
+                        for _, row in discharge_df.iterrows():
+                            fig.add_vrect(
+                                x0=row["datetime"] - pd.Timedelta(minutes=7),
+                                x1=row["datetime"] + pd.Timedelta(minutes=7),
+                                fillcolor="rgba(255,107,0,0.10)", layer="below", line_width=0
+                            )
+
+                        # Main LMP line
+                        fig.add_trace(go.Scatter(
+                            x=plot_df["datetime"], y=plot_df["price"],
+                            mode="lines", name=sel_bus,
+                            line=dict(color="#00ff9d", width=2),
+                            hovertemplate="<b>%{x|%H:%M}</b><br>$%{y:.2f}/MWh<extra></extra>"
+                        ))
+
+                        # MA3 dashed overlay
+                        fig.add_trace(go.Scatter(
+                            x=plot_df["datetime"], y=plot_df["ma3"],
+                            mode="lines", name=f"{sel_bus} MA3",
+                            line=dict(color="#00ff9d", width=1.5, dash="dot"),
+                            opacity=0.55,
+                            hovertemplate="MA3: $%{y:.2f}<extra></extra>"
+                        ))
+
+                        # Charge markers
+                        if len(charge_df):
+                            fig.add_trace(go.Scatter(
+                                x=charge_df["datetime"], y=charge_df["price"],
+                                mode="markers", name="CHARGE ▼",
+                                marker=dict(color="#00ff9d", size=7, symbol="triangle-down",
+                                            line=dict(color="#030712", width=1)),
+                                hovertemplate="CHARGE<br>$%{y:.2f}<extra></extra>"
+                            ))
+
+                        # Discharge markers
+                        if len(discharge_df):
+                            fig.add_trace(go.Scatter(
+                                x=discharge_df["datetime"], y=discharge_df["price"],
+                                mode="markers", name="DISCHARGE ▲",
+                                marker=dict(color="#ff2d55", size=7, symbol="triangle-up",
+                                            line=dict(color="#030712", width=1)),
+                                hovertemplate="DISCHARGE<br>$%{y:.2f}<extra></extra>"
+                            ))
+
+                        # Layout — match BESS dashboard style
+                        fig.update_layout(
+                            title=dict(text=f"LMP PRICE CHART — {chart_title}",
+                                       font=dict(family="Orbitron", size=12, color="#3a6080"), x=0.01),
+                            height=400,
+                            paper_bgcolor="#030712",
+                            plot_bgcolor="#060d1a",
+                            font=dict(family="Share Tech Mono", color="#c8e6ff", size=10),
+                            xaxis=dict(
+                                gridcolor="#0a1f35", linecolor="#1a3050",
+                                tickfont=dict(size=10, color="#3a6080"),
+                                title=dict(text="Hour (CST)", font=dict(color="#3a6080")),
+                                rangeslider=dict(visible=True, thickness=0.04,
+                                                 bgcolor="#030712", bordercolor="#0a1f35"),
+                                type="date",
+                            ),
+                            yaxis=dict(
+                                gridcolor="#0a1f35", linecolor="#1a3050",
+                                tickfont=dict(size=10, color="#3a6080"),
+                                title=dict(text="LMP ($/MWh)", font=dict(color="#3a6080")),
+                                tickprefix="$",
+                            ),
+                            legend=dict(
+                                bgcolor="rgba(6,13,26,0.85)",
+                                bordercolor="#1a3050", borderwidth=1,
+                                font=dict(size=10), orientation="h",
+                                yanchor="bottom", y=1.02, xanchor="left", x=0,
+                            ),
+                            margin=dict(l=60, r=20, t=48, b=60),
+                            hovermode="x unified",
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
+                        # ── Legend annotation ───────────────────────────
+                        st.markdown(f"""
+                        <div style="font-family:Share Tech Mono,monospace;font-size:10px;color:#3a6080;
+                             display:flex;gap:24px;padding:5px 8px;background:rgba(0,0,0,0.3);
+                             border-radius:3px;flex-wrap:wrap">
+                            <span style="color:#00ff9d">▼ CHARGE windows</span>
+                            <span style="color:#ff2d55">▲ DISCHARGE windows</span>
+                            <span>···· MA3 rolling average</span>
+                            <span style="color:{vol_color}">volatility: {vol_label} ({volatility:.1f} σ)</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        # ── Multi-bus comparison chart ──────────────────
+                        if len(bus_list) > 1:
+                            st.markdown('<div class="section-label" style="margin-top:16px">MULTI-BUS COMPARISON</div>', unsafe_allow_html=True)
+                            fig2 = go.Figure()
+                            colors = ["#00ff9d","#00c8ff","#ff6b00","#d966ff","#ffd700","#ff2d55"]
+                            for idx, bus in enumerate(bus_list[:6]):
+                                bdf2 = matched[matched["_bus_up"]==bus].copy()
+                                bdf2["datetime"] = pd.to_datetime(bdf2["datetime"], errors="coerce")
+                                if not show_all and d_min != d_max:
+                                    bdf2 = bdf2[bdf2["datetime"].dt.date == sel_date]
+                                bdf2 = bdf2.dropna(subset=["datetime"]).sort_values("datetime")
+                                if bdf2.empty: continue
+                                bdf2 = bdf2.set_index("datetime")["price"].resample("15min").mean().reset_index()
+                                bdf2.columns = ["datetime","price"]
+                                is_sel = (bus == sel_bus)
+                                fig2.add_trace(go.Scatter(
+                                    x=bdf2["datetime"], y=bdf2["price"],
+                                    mode="lines", name=bus,
+                                    line=dict(color=colors[idx % len(colors)],
+                                              width=2.5 if is_sel else 1.2,
+                                              dash="solid" if is_sel else "solid"),
+                                    opacity=1.0 if is_sel else 0.6,
+                                    hovertemplate=f"<b>{bus}</b><br>$%{{y:.2f}}<extra></extra>"
+                                ))
+
+                            fig2.update_layout(
+                                title=dict(text="ALL BUSES — PRICE COMPARISON",
+                                           font=dict(family="Orbitron", size=12, color="#3a6080"), x=0.01),
+                                height=300,
+                                paper_bgcolor="#030712", plot_bgcolor="#060d1a",
+                                font=dict(family="Share Tech Mono", color="#c8e6ff", size=10),
+                                xaxis=dict(gridcolor="#0a1f35", linecolor="#1a3050",
+                                           tickfont=dict(size=10, color="#3a6080"), type="date"),
+                                yaxis=dict(gridcolor="#0a1f35", linecolor="#1a3050",
+                                           tickfont=dict(size=10, color="#3a6080"), tickprefix="$"),
+                                legend=dict(bgcolor="rgba(6,13,26,0.85)", bordercolor="#1a3050",
+                                            borderwidth=1, font=dict(size=10),
+                                            orientation="h", yanchor="bottom", y=1.02, x=0),
+                                margin=dict(l=60, r=20, t=48, b=40),
+                                hovermode="x unified",
+                            )
+                            st.plotly_chart(fig2, use_container_width=True)
 
             # ── Arbitrage ─────────────────────────────────────────
             elif uc_sel == "arbitrage" and isinstance(result, pd.DataFrame):
