@@ -708,61 +708,61 @@ def render_ercot_card(sub_name, sub_df):
 
 
 def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_sub=None):
-    """Full LMP section: ZIP/CSV upload + live API + use-case analysis + 24h chart."""
+    """LMP Analysis Engine — upload auto-plots, use-cases layer as toggles."""
     st.markdown('<div class="section-label">⚡ LMP ANALYSIS ENGINE</div>', unsafe_allow_html=True)
 
-    tab_upload, tab_live, tab_usecases = st.tabs([
-        "📁 Upload ZIP / CSV",
-        "🌐 Live ERCOT API",
-        "📊 Use-Case Modules",
-    ])
+    lmp_key  = f"{key_prefix}_lmpdf"
+    bus_key  = f"{key_prefix}_selbus"
+    date_key = f"{key_prefix}_seldate"
+    if lmp_key not in st.session_state:  st.session_state[lmp_key]  = None
+    if bus_key  not in st.session_state: st.session_state[bus_key]  = None
+    if date_key not in st.session_state: st.session_state[date_key] = None
 
-    # ── shared state ──
-    lmp_key = f"{key_prefix}_lmpdf"
-    if lmp_key not in st.session_state:
-        st.session_state[lmp_key] = None
+    # ── ROW 1: Upload + Live API side by side ─────────────────────
+    up_col, api_col = st.columns([3, 2])
 
-    # ── TAB 1: Upload ─────────────────────────────────────────────
-    with tab_upload:
-        st.markdown('<p style="color:#3a6080;font-family:Share Tech Mono,monospace;font-size:11px">Upload a ZIP file containing ERCOT LMP CSVs, or a single CSV. All files are auto-merged and matched to selected buses.</p>', unsafe_allow_html=True)
-        up = st.file_uploader("Upload LMP file", type=["csv","zip"],
+    with up_col:
+        st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px">// UPLOAD LMP FILE</div>', unsafe_allow_html=True)
+        up = st.file_uploader("LMP file", type=["csv","zip"],
                               key=f"{key_prefix}_uploader", label_visibility="collapsed")
         if up:
-            with st.spinner("Parsing file(s)..."):
+            with st.spinner("Parsing..."):
                 ldf, err = parse_lmp_upload(up)
             if err and ldf is None:
                 st.error(err)
             else:
                 if err: st.warning(err)
-                st.session_state[lmp_key] = ldf
-                files = ldf["_source_file"].nunique() if "_source_file" in ldf.columns else 1
-                st.success(f"✓ Loaded {len(ldf):,} rows from {files} file(s)")
+                # Guard bus column
+                if ldf is not None and "bus" not in ldf.columns:
+                    cands = [c for c in ldf.columns if any(k in c.upper().replace("_","")
+                             for k in ["ELECTRICALBUS","SETTLEMENTPOINT","BUSNAME","NODENAME","ELECBUS"])]
+                    if cands: ldf = ldf.rename(columns={cands[0]: "bus"})
+                if ldf is not None:
+                    st.session_state[lmp_key] = ldf
+                    st.session_state[bus_key] = None   # reset bus selection on new upload
+                    files = ldf["_source_file"].nunique() if "_source_file" in ldf.columns else 1
+                    st.success(f"✓ {len(ldf):,} rows · {files} file(s)")
 
-    # ── TAB 2: Live API ───────────────────────────────────────────
-    with tab_live:
-        st.markdown('<p style="color:#3a6080;font-family:Share Tech Mono,monospace;font-size:11px">Pull DAM Settlement Point Prices directly from the ERCOT public API — no file upload needed.</p>', unsafe_allow_html=True)
-
+    with api_col:
+        st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px">// LIVE ERCOT API</div>', unsafe_allow_html=True)
         buses_available = resolved_df["Bus"].tolist()
-        c1, c2, c3 = st.columns([3, 1, 1])
-        with c1:
-            live_bus = st.selectbox("Select Bus", buses_available,
+        a1, a2 = st.columns([2, 1])
+        with a1:
+            live_bus = st.selectbox("Bus", buses_available,
                                     key=f"{key_prefix}_live_bus", label_visibility="collapsed")
-        with c2:
-            days_back = st.selectbox("Days back", [1, 7, 14, 30, 60],
+        with a2:
+            days_back = st.selectbox("Days", [1,7,14,30,60],
                                      key=f"{key_prefix}_live_days", label_visibility="collapsed")
-        with c3:
-            fetch_btn = st.button("Fetch Live →", key=f"{key_prefix}_fetch_live",
-                                  type="primary", use_container_width=True)
-
+        fetch_btn = st.button("Fetch Live →", key=f"{key_prefix}_fetch_live",
+                              type="primary", use_container_width=True)
         if fetch_btn and live_bus:
             d_to   = datetime.now().strftime("%Y-%m-%d")
             d_from = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
-            with st.spinner(f"Fetching {live_bus} from ERCOT API ({d_from} → {d_to})..."):
+            with st.spinner(f"Fetching {live_bus}..."):
                 ldf, err = fetch_ercot_dam_live(live_bus, d_from, d_to)
             if err:
-                st.error(f"{err} — The ERCOT API may require authentication. Use the Upload tab instead.")
+                st.error(f"API unavailable — upload a file instead")
             elif ldf is not None:
-                # Normalise to standard format
                 ldf.columns = [c.lower().replace(" ","_") for c in ldf.columns]
                 price_col = next((c for c in ldf.columns if "price" in c), None)
                 hour_col  = next((c for c in ldf.columns if "hour" in c), None)
@@ -776,459 +776,411 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                         ldf["datetime"] = pd.to_datetime(ldf[date_col], errors="coerce") + \
                                           pd.to_timedelta(ldf["hour_int"]-1, unit="h")
                     st.session_state[lmp_key] = ldf
-                    st.success(f"✓ Fetched {len(ldf):,} rows for {live_bus}")
+                    st.session_state[bus_key] = None
+                    st.success(f"✓ {len(ldf):,} rows for {live_bus}")
 
-    # ── Use uploaded/fetched data ─────────────────────────────────
+    # ── Check data loaded ─────────────────────────────────────────
     ldf = st.session_state[lmp_key]
     if ldf is None:
-        st.markdown("""
-        <div class="map-placeholder" style="padding:28px;margin-top:10px">
+        st.markdown("""<div class="map-placeholder" style="padding:28px;margin-top:12px">
             <div class="mp-icon">📡</div>
-            <div class="mp-sub">Upload a ZIP/CSV or fetch live data above to begin analysis</div>
+            <div class="mp-sub">Upload a ZIP/CSV above — chart will appear automatically</div>
         </div>""", unsafe_allow_html=True)
         return None
 
-    # Guard: ensure 'bus' column exists (different ERCOT file formats may name it differently)
-    if "bus" not in ldf.columns:
-        # Try to find a usable bus column from what was loaded
-        candidates = [c for c in ldf.columns if any(k in c.upper().replace("_","") for k in
-                      ["ELECTRICALBUS","SETTLEMENTPOINT","BUSNAME","NODENAME","ELECBUS"])]
-        if candidates:
-            ldf = ldf.rename(columns={candidates[0]: "bus"})
-        else:
-            st.error(f"Could not find a bus/node column. Columns in file: `{list(ldf.columns)}`")
-            return None
-
-    buses_up  = set(resolved_df["Bus"].str.upper())
+    # Match buses
+    buses_up = set(resolved_df["Bus"].str.upper())
     ldf["_bus_up"] = ldf["bus"].astype(str).str.upper().str.strip()
-    matched   = ldf[ldf["_bus_up"].isin(buses_up)].copy()
-
-    m1,m2,m3,m4 = st.columns(4)
-    m1.metric("Total Rows",    f"{len(ldf):,}")
-    m2.metric("Matched Rows",  f"{len(matched):,}")
-    m3.metric("Buses Matched", f"{matched['_bus_up'].nunique()} / {len(buses_up)}")
-    avg_p = matched["price"].mean() if len(matched) else None
-    m4.metric("Avg LMP",       f"${avg_p:.2f}/MWh" if avg_p is not None else "—")
-
+    matched = ldf[ldf["_bus_up"].isin(buses_up)].copy()
     if matched.empty:
         st.warning("No buses matched. Check settlement point names in your file.")
         return None
 
-    # ── TAB 3: Use-Case Modules ───────────────────────────────────
-    with tab_usecases:
-        USE_CASES = {
-            "24h_profile":   ("📈 24-Hour Profile",      "LMP curve for any selected bus across 24 hours", "Developers · Traders · BESS Operators"),
-            "arbitrage":     ("💰 Energy Arbitrage",      "Best charge/discharge windows. Revenue estimate for BESS", "BESS Operators · Traders"),
-            "congestion":    ("🔥 Congestion Analysis",   "Price spreads between nodes. Identify transmission bottlenecks", "Developers · Grid Planners"),
-            "curtailment":   ("⚠️ Curtailment Risk",      "Negative/zero price frequency. Renewable revenue impact", "Solar · Wind Developers"),
-            "bess_dispatch": ("⚡ BESS Dispatch",         "Optimal charge/discharge schedule using rolling-average logic", "BESS Operators"),
-            "ftr":           ("🎯 FTR Opportunity",       "Node-pair spread analysis for Financial Transmission Rights", "Power Traders"),
-            "revenue":       ("🏗️ Revenue Estimation",   "Annual revenue estimates for Solar, Wind, BESS by node", "Project Developers"),
-        }
+    # ── ROW 2: Metrics ────────────────────────────────────────────
+    m1,m2,m3,m4 = st.columns(4)
+    m1.metric("Total Rows",    f"{len(ldf):,}")
+    m2.metric("Matched Rows",  f"{len(matched):,}")
+    m3.metric("Buses Matched", f"{matched['_bus_up'].nunique()} / {len(buses_up)}")
+    avg_p = matched["price"].mean()
+    m4.metric("Avg LMP",       f"${avg_p:.2f}/MWh")
 
-        uc_sel = st.selectbox(
-            "Select Analysis",
-            list(USE_CASES.keys()),
-            format_func=lambda k: USE_CASES[k][0],
-            key=f"{key_prefix}_uc_sel",
-            label_visibility="collapsed"
+    st.markdown('<hr style="border-color:#0a1f35;margin:12px 0"/>', unsafe_allow_html=True)
+
+    # ── ROW 3: Bus + Date controls (always visible) ───────────────
+    bus_list = sorted(matched["_bus_up"].unique().tolist())
+    if st.session_state[bus_key] not in bus_list:
+        st.session_state[bus_key] = bus_list[0]
+
+    ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([3, 2, 1, 1])
+    with ctrl1:
+        sel_bus = st.selectbox(
+            "Bus / Settlement Point", bus_list,
+            index=bus_list.index(st.session_state[bus_key]),
+            key=f"{key_prefix}_bus_sel", label_visibility="collapsed"
         )
+        st.session_state[bus_key] = sel_bus
 
-        uc_title, uc_desc, uc_who = USE_CASES[uc_sel]
-        st.markdown(f"""
-        <div style="background:rgba(0,255,157,0.04);border:1px solid rgba(0,255,157,0.15);
-             border-radius:4px;padding:10px 16px;margin-bottom:14px;">
-            <div style="font-family:Orbitron,monospace;font-size:12px;color:#00ff9d;margin-bottom:4px">{uc_title}</div>
-            <div style="font-family:Share Tech Mono,monospace;font-size:11px;color:#3a6080">{uc_desc}</div>
-            <div style="font-family:Share Tech Mono,monospace;font-size:10px;color:#00c8ff;margin-top:4px">👤 {uc_who}</div>
-        </div>
-        """, unsafe_allow_html=True)
+    bdf_full = matched[matched["_bus_up"] == sel_bus].copy()
+    bdf_full["datetime"] = pd.to_datetime(bdf_full["datetime"], errors="coerce")
+    bdf_full = bdf_full.dropna(subset=["datetime"]).sort_values("datetime")
 
-        # BESS params if needed
-        batt_mw, batt_mwh, eff = 100, 400, 0.85
-        if uc_sel in ["arbitrage", "bess_dispatch"]:
-            bc1, bc2, bc3 = st.columns(3)
-            batt_mw  = bc1.number_input("Battery MW",  value=100, min_value=1,  key=f"{key_prefix}_bmw")
-            batt_mwh = bc2.number_input("Battery MWh", value=400, min_value=10, key=f"{key_prefix}_bmwh")
-            eff      = bc3.number_input("Efficiency",  value=0.85, min_value=0.5, max_value=1.0, step=0.01, key=f"{key_prefix}_eff")
+    d_min = bdf_full["datetime"].dt.date.min()
+    d_max = bdf_full["datetime"].dt.date.max()
 
-        run_btn = st.button(f"Run {uc_title} →", key=f"{key_prefix}_run_{uc_sel}", type="primary", use_container_width=True)
+    with ctrl2:
+        sel_date = st.date_input("Date", value=d_max,
+            min_value=d_min, max_value=d_max,
+            key=f"{key_prefix}_date_sel", label_visibility="collapsed")
+    with ctrl3:
+        show_all = st.checkbox("All dates", value=(d_min==d_max), key=f"{key_prefix}_showall")
+    with ctrl4:
+        resample_opt = st.selectbox("Interval", ["5min","15min","1h"],
+                                    index=1, key=f"{key_prefix}_resample",
+                                    label_visibility="collapsed")
 
-        result = None
-        if run_btn:
-            with st.spinner("Analysing..."):
-                result, err = run_lmp_analytics(matched.copy(), resolved_df, uc_sel, batt_mw, batt_mwh, eff)
-            if err:
-                st.error(err)
-                result = None
-            else:
-                # Store per use-case — clear other use-case results to avoid cross-contamination
-                for old_uc in ["24h_profile","arbitrage","congestion","curtailment","bess_dispatch","ftr","revenue"]:
-                    if old_uc != uc_sel:
-                        st.session_state.pop(f"{key_prefix}_uc_result_{old_uc}", None)
-                st.session_state[f"{key_prefix}_uc_result_{uc_sel}"] = result
-        elif f"{key_prefix}_uc_result_{uc_sel}" in st.session_state:
-            result = st.session_state[f"{key_prefix}_uc_result_{uc_sel}"]
+    # Filter to date
+    if show_all or d_min == d_max:
+        plot_df = bdf_full.copy()
+        date_label = f"{d_min} → {d_max}"
+    else:
+        plot_df = bdf_full[bdf_full["datetime"].dt.date == sel_date].copy()
+        date_label = str(sel_date)
 
-        if result is not None and not run_btn:
-            st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:10px;color:#3a6080;margin-bottom:8px">// cached result — click Run to refresh</div>', unsafe_allow_html=True)
+    if plot_df.empty:
+        st.warning(f"No data for {sel_date}. Try 'All dates'.")
+        return None
 
-        if result is None:
-            pass
-        # ── 24h Profile ──────────────────────────────────────
-        elif uc_sel == "24h_profile":
-                bus_list = sorted(matched["_bus_up"].unique().tolist())
+    # Resample
+    plot_df = (plot_df.set_index("datetime")["price"]
+               .resample(resample_opt).mean()
+               .reset_index()
+               .rename(columns={"price":"price","datetime":"datetime"})
+               .dropna())
+    plot_df.columns = ["datetime","price"]
+    plot_df["ma3"] = plot_df["price"].rolling(3, center=True, min_periods=1).mean()
 
-                # ── Bus selector + date picker ────────────────────
-                hc1, hc2, hc3 = st.columns([3, 2, 1])
-                with hc1:
-                    sel_bus = st.selectbox("Bus / Settlement Point",
-                        bus_list, key=f"{key_prefix}_24h_bus",
-                        label_visibility="collapsed")
-                bdf = matched[matched["_bus_up"] == sel_bus].copy()
+    # ── ROW 4: Summary metrics ────────────────────────────────────
+    last_p  = plot_df["price"].iloc[-1]
+    avg_p2  = plot_df["price"].mean()
+    peak_p  = plot_df["price"].max()
+    peak_t  = plot_df.loc[plot_df["price"].idxmax(), "datetime"]
+    vol     = plot_df["price"].std()
+    pct_chg = ((last_p - plot_df["price"].iloc[0]) / abs(plot_df["price"].iloc[0]) * 100) if plot_df["price"].iloc[0] != 0 else 0
+    vol_lbl = "HIGH" if vol > 15 else "MOD" if vol > 5 else "LOW"
+    vol_col = "#ff2d55" if vol > 15 else "#ff6b00" if vol > 5 else "#00ff9d"
 
-                # Ensure datetime is proper pandas Timestamp
-                bdf["datetime"] = pd.to_datetime(bdf["datetime"], errors="coerce")
-                bdf = bdf.dropna(subset=["datetime"]).sort_values("datetime")
+    sm1,sm2,sm3,sm4 = st.columns(4)
+    sm1.metric("⚡ LAST LMP",  f"${last_p:.2f}", f"{pct_chg:+.1f}%")
+    sm2.metric("◆ AVG LMP",   f"${avg_p2:.2f}")
+    sm3.metric("▲ PEAK LMP",  f"${peak_p:.2f}", f"at {peak_t.strftime('%m-%d %H:%M')}")
+    sm4.metric("~ VOLATILITY", f"{vol:.1f}", vol_lbl)
 
-                if bdf.empty:
-                    st.warning("No data for this bus.")
-                else:
-                    # ── Date range available ──────────────────────
-                    d_min = bdf["datetime"].dt.date.min()
-                    d_max = bdf["datetime"].dt.date.max()
-                    with hc2:
-                        sel_date = st.date_input(
-                            "Date", value=d_max,
-                            min_value=d_min, max_value=d_max,
-                            key=f"{key_prefix}_24h_date",
-                            label_visibility="collapsed"
-                        )
-                    with hc3:
-                        show_all = st.checkbox("All dates", value=(d_min==d_max),
-                                               key=f"{key_prefix}_24h_all")
+    # ── ROW 5: Use-case overlay toggles ──────────────────────────
+    st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;letter-spacing:.2em;text-transform:uppercase;margin:10px 0 6px">// ADD OVERLAYS TO CHART</div>', unsafe_allow_html=True)
 
-                    # ── Filter to selected date or all ───────────
-                    if show_all or d_min == d_max:
-                        plot_df = bdf.copy()
-                        chart_title = f"LMP — {sel_bus}  ·  {d_min} → {d_max}"
-                    else:
-                        plot_df = bdf[bdf["datetime"].dt.date == sel_date].copy()
-                        chart_title = f"LMP — {sel_bus}  ·  {sel_date}  (24H)"
+    ov_cols = st.columns(6)
+    ov_ma3      = ov_cols[0].checkbox("MA3 Line",       value=True,  key=f"{key_prefix}_ov_ma3")
+    ov_bess     = ov_cols[1].checkbox("BESS Signals",   value=True,  key=f"{key_prefix}_ov_bess")
+    ov_arb      = ov_cols[2].checkbox("Arbitrage",      value=False, key=f"{key_prefix}_ov_arb")
+    ov_neg      = ov_cols[3].checkbox("Neg. Prices",    value=False, key=f"{key_prefix}_ov_neg")
+    ov_avg_line = ov_cols[4].checkbox("Avg Line",       value=False, key=f"{key_prefix}_ov_avg")
+    ov_multi    = ov_cols[5].checkbox("All Buses",      value=False, key=f"{key_prefix}_ov_multi")
 
-                    if plot_df.empty:
-                        st.warning(f"No data for {sel_date}. Try 'All dates'.")
-                    else:
-                        # ── Resample to 15-min to smooth SCED 5-min noise ─
-                        plot_df = plot_df.set_index("datetime")
-                        plot_df = plot_df["price"].resample("15min").mean().reset_index()
-                        plot_df.columns = ["datetime", "price"]
-                        plot_df = plot_df.dropna()
+    # ── Compute BESS signals ──────────────────────────────────────
+    roll6 = plot_df["price"].rolling(6, center=True, min_periods=1).mean()
+    plot_df["signal"] = "HOLD"
+    plot_df.loc[plot_df["price"] < roll6 * 0.88, "signal"] = "CHARGE"
+    plot_df.loc[plot_df["price"] > roll6 * 1.12, "signal"] = "DISCHARGE"
+    charge_df    = plot_df[plot_df["signal"] == "CHARGE"]
+    discharge_df = plot_df[plot_df["signal"] == "DISCHARGE"]
 
-                        # ── MA3 (moving average 3-period = 45 min) ──────
-                        plot_df["ma3"] = plot_df["price"].rolling(3, center=True, min_periods=1).mean()
+    # ── BUILD MAIN CHART ─────────────────────────────────────────
+    fig = go.Figure()
 
-                        # ── BESS signal ──────────────────────────────────
-                        roll = plot_df["price"].rolling(6, center=True, min_periods=1).mean()
-                        plot_df["signal"] = "HOLD"
-                        plot_df.loc[plot_df["price"] < roll * 0.88, "signal"] = "CHARGE"
-                        plot_df.loc[plot_df["price"] > roll * 1.12, "signal"] = "DISCHARGE"
+    # BESS shaded zones (below everything)
+    if ov_bess:
+        interval_td = pd.Timedelta(resample_opt) / 2
+        for _, row in charge_df.iterrows():
+            fig.add_vrect(x0=row["datetime"]-interval_td, x1=row["datetime"]+interval_td,
+                          fillcolor="rgba(0,255,157,0.09)", layer="below", line_width=0)
+        for _, row in discharge_df.iterrows():
+            fig.add_vrect(x0=row["datetime"]-interval_td, x1=row["datetime"]+interval_td,
+                          fillcolor="rgba(255,45,85,0.09)", layer="below", line_width=0)
 
-                        charge_df    = plot_df[plot_df["signal"] == "CHARGE"]
-                        discharge_df = plot_df[plot_df["signal"] == "DISCHARGE"]
+    # Negative price shading
+    if ov_neg:
+        neg_df = plot_df[plot_df["price"] < 0]
+        for _, row in neg_df.iterrows():
+            interval_td_neg = pd.Timedelta(resample_opt) / 2
+            fig.add_vrect(x0=row["datetime"]-interval_td_neg, x1=row["datetime"]+interval_td_neg,
+                          fillcolor="rgba(191,0,255,0.12)", layer="below", line_width=0)
 
-                        # ── Summary metrics ──────────────────────────────
-                        last_price = plot_df["price"].iloc[-1]
-                        avg_price  = plot_df["price"].mean()
-                        peak_price = plot_df["price"].max()
-                        peak_time  = plot_df.loc[plot_df["price"].idxmax(), "datetime"]
-                        volatility = plot_df["price"].std()
-                        pct_chg    = ((last_price - plot_df["price"].iloc[0]) / abs(plot_df["price"].iloc[0]) * 100) if plot_df["price"].iloc[0] != 0 else 0
-                        vol_label  = "HIGH" if volatility > 15 else "MOD" if volatility > 5 else "LOW"
-                        vol_color  = "#ff2d55" if volatility > 15 else "#ff6b00" if volatility > 5 else "#00ff9d"
+    # Average horizontal line
+    if ov_avg_line:
+        fig.add_hline(y=avg_p2, line_dash="dash", line_color="rgba(0,200,255,0.5)",
+                      line_width=1,
+                      annotation_text=f"Avg ${avg_p2:.2f}",
+                      annotation_font=dict(color="#00c8ff", size=10, family="Share Tech Mono"))
 
-                        st.markdown(f"""
-                        <div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;
-                             letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px">
-                            SELECT BUS / SETTLEMENT POINT
-                        </div>
-                        """, unsafe_allow_html=True)
+    # Multi-bus traces (dimmed)
+    if ov_multi:
+        colors_multi = ["#00c8ff","#ff6b00","#d966ff","#ffd700","#ff2d55"]
+        for idx, other_bus in enumerate([b for b in bus_list if b != sel_bus][:5]):
+            obdf = matched[matched["_bus_up"]==other_bus].copy()
+            obdf["datetime"] = pd.to_datetime(obdf["datetime"], errors="coerce")
+            if not (show_all or d_min==d_max):
+                obdf = obdf[obdf["datetime"].dt.date == sel_date]
+            obdf = (obdf.dropna(subset=["datetime"])
+                    .set_index("datetime")["price"]
+                    .resample(resample_opt).mean()
+                    .reset_index().dropna())
+            obdf.columns = ["datetime","price"]
+            fig.add_trace(go.Scatter(
+                x=obdf["datetime"], y=obdf["price"],
+                mode="lines", name=other_bus,
+                line=dict(color=colors_multi[idx % len(colors_multi)], width=1.2),
+                opacity=0.5,
+                hovertemplate=f"<b>{other_bus}</b><br>$%{{y:.2f}}<extra></extra>"
+            ))
 
-                        m1, m2, m3, m4 = st.columns(4)
-                        m1.metric("⚡ LAST LMP",
-                            f"${last_price:.2f}",
-                            f"{pct_chg:+.1f}%",
-                            help="Most recent interval — $/MWh")
-                        m2.metric("◆ AVG LMP",
-                            f"${avg_price:.2f}",
-                            help="Period average — $/MWh")
-                        m3.metric("▲ PEAK LMP",
-                            f"${peak_price:.2f}",
-                            f"at {peak_time.strftime('%m-%d %H:%M')}",
-                            help="Highest price in period")
-                        m4.metric("~ VOLATILITY",
-                            f"{volatility:.1f}",
-                            vol_label,
-                            help="Std dev of LMP — HIGH/MOD/LOW")
+    # Main LMP line — always shown
+    fig.add_trace(go.Scatter(
+        x=plot_df["datetime"], y=plot_df["price"],
+        mode="lines", name=sel_bus,
+        line=dict(color="#00ff9d", width=2.2),
+        hovertemplate="<b>%{x|%b %d %H:%M}</b><br>$%{y:.2f}/MWh<extra></extra>"
+    ))
 
-                        # ── Date range badge ─────────────────────────────
-                        st.markdown(f"""
-                        <div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;
-                             margin-bottom:8px">
-                            {len(plot_df):,} INTERVALS AVAILABLE &nbsp;·&nbsp;
-                            {d_min} → {d_max}
-                        </div>""", unsafe_allow_html=True)
+    # MA3 overlay
+    if ov_ma3:
+        fig.add_trace(go.Scatter(
+            x=plot_df["datetime"], y=plot_df["ma3"],
+            mode="lines", name=f"{sel_bus} MA3",
+            line=dict(color="#00ff9d", width=1.2, dash="dot"),
+            opacity=0.5,
+            hovertemplate="MA3: $%{y:.2f}<extra></extra>"
+        ))
 
-                        # ── MAIN CHART — full BESS-dashboard style ───────
-                        fig = go.Figure()
+    # BESS markers
+    if ov_bess:
+        if len(charge_df):
+            fig.add_trace(go.Scatter(
+                x=charge_df["datetime"], y=charge_df["price"],
+                mode="markers", name="CHARGE ▼",
+                marker=dict(color="#00ff9d", size=7, symbol="triangle-down",
+                            line=dict(color="#030712", width=1)),
+                hovertemplate="CHARGE<br>$%{y:.2f}<extra></extra>"
+            ))
+        if len(discharge_df):
+            fig.add_trace(go.Scatter(
+                x=discharge_df["datetime"], y=discharge_df["price"],
+                mode="markers", name="DISCHARGE ▲",
+                marker=dict(color="#ff2d55", size=7, symbol="triangle-up",
+                            line=dict(color="#030712", width=1)),
+                hovertemplate="DISCHARGE<br>$%{y:.2f}<extra></extra>"
+            ))
 
-                        # Shaded charge zones
-                        for _, row in charge_df.iterrows():
-                            fig.add_vrect(
-                                x0=row["datetime"] - pd.Timedelta(minutes=7),
-                                x1=row["datetime"] + pd.Timedelta(minutes=7),
-                                fillcolor="rgba(0,255,157,0.10)", layer="below", line_width=0
-                            )
-                        # Shaded discharge zones
-                        for _, row in discharge_df.iterrows():
-                            fig.add_vrect(
-                                x0=row["datetime"] - pd.Timedelta(minutes=7),
-                                x1=row["datetime"] + pd.Timedelta(minutes=7),
-                                fillcolor="rgba(255,107,0,0.10)", layer="below", line_width=0
-                            )
+    # Arbitrage best windows annotation
+    if ov_arb and len(plot_df) >= 8:
+        prices  = plot_df["price"].values
+        sort_idx = prices.argsort()
+        cheap4  = sort_idx[:4]
+        peak4   = sort_idx[-4:]
+        for ci in cheap4:
+            fig.add_annotation(
+                x=plot_df["datetime"].iloc[ci], y=prices[ci],
+                text="C", showarrow=True, arrowhead=2, arrowcolor="#00ff9d",
+                font=dict(color="#00ff9d", size=9, family="Orbitron"),
+                arrowsize=0.8, ax=0, ay=-20
+            )
+        for pi in peak4:
+            fig.add_annotation(
+                x=plot_df["datetime"].iloc[pi], y=prices[pi],
+                text="D", showarrow=True, arrowhead=2, arrowcolor="#ff2d55",
+                font=dict(color="#ff2d55", size=9, family="Orbitron"),
+                arrowsize=0.8, ax=0, ay=20
+            )
 
-                        # Main LMP line
-                        fig.add_trace(go.Scatter(
-                            x=plot_df["datetime"], y=plot_df["price"],
-                            mode="lines", name=sel_bus,
-                            line=dict(color="#00ff9d", width=2),
-                            hovertemplate="<b>%{x|%H:%M}</b><br>$%{y:.2f}/MWh<extra></extra>"
-                        ))
+    fig.update_layout(
+        title=dict(
+            text=f"LMP PRICE CHART — {date_label} — {resample_opt} intervals",
+            font=dict(family="Orbitron", size=11, color="#3a6080"), x=0.01
+        ),
+        height=420,
+        paper_bgcolor="#030712",
+        plot_bgcolor="#060d1a",
+        font=dict(family="Share Tech Mono", color="#c8e6ff", size=10),
+        xaxis=dict(
+            gridcolor="#0a1f35", linecolor="#1a3050",
+            tickfont=dict(size=10, color="#3a6080"),
+            title=dict(text="Time (CST)", font=dict(color="#3a6080", size=10)),
+            rangeslider=dict(visible=True, thickness=0.04,
+                             bgcolor="#030712", bordercolor="#0a1f35"),
+            type="date",
+        ),
+        yaxis=dict(
+            gridcolor="#0a1f35", linecolor="#1a3050",
+            tickfont=dict(size=10, color="#3a6080"),
+            title=dict(text="LMP ($/MWh)", font=dict(color="#3a6080", size=10)),
+            tickprefix="$",
+        ),
+        legend=dict(
+            bgcolor="rgba(6,13,26,0.88)", bordercolor="#1a3050", borderwidth=1,
+            font=dict(size=10), orientation="h",
+            yanchor="bottom", y=1.02, xanchor="left", x=0,
+        ),
+        margin=dict(l=60, r=20, t=50, b=60),
+        hovermode="x unified",
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
-                        # MA3 dashed overlay
-                        fig.add_trace(go.Scatter(
-                            x=plot_df["datetime"], y=plot_df["ma3"],
-                            mode="lines", name=f"{sel_bus} MA3",
-                            line=dict(color="#00ff9d", width=1.5, dash="dot"),
-                            opacity=0.55,
-                            hovertemplate="MA3: $%{y:.2f}<extra></extra>"
-                        ))
+    # Legend bar
+    parts = [f'<span style="color:#00ff9d">── {sel_bus}</span>']
+    if ov_ma3:      parts.append('<span style="color:#00ff9d;opacity:.5">···· MA3</span>')
+    if ov_bess:     parts.append('<span style="color:#00ff9d">▼ CHARGE</span>  <span style="color:#ff2d55">▲ DISCHARGE</span>')
+    if ov_arb:      parts.append('<span style="color:#00ff9d">C=cheap</span> <span style="color:#ff2d55">D=peak</span> arbitrage')
+    if ov_neg:      parts.append('<span style="color:#bf00ff">■ negative prices</span>')
+    if ov_avg_line: parts.append(f'<span style="color:#00c8ff">── avg ${avg_p2:.2f}</span>')
+    st.markdown(
+        '<div style="font-family:Share Tech Mono,monospace;font-size:10px;color:#3a6080;'
+        'display:flex;gap:18px;padding:5px 8px;background:rgba(0,0,0,0.3);border-radius:3px;'
+        'flex-wrap:wrap;margin-top:-8px">' + "  ·  ".join(parts) + '</div>',
+        unsafe_allow_html=True
+    )
 
-                        # Charge markers
-                        if len(charge_df):
-                            fig.add_trace(go.Scatter(
-                                x=charge_df["datetime"], y=charge_df["price"],
-                                mode="markers", name="CHARGE ▼",
-                                marker=dict(color="#00ff9d", size=7, symbol="triangle-down",
-                                            line=dict(color="#030712", width=1)),
-                                hovertemplate="CHARGE<br>$%{y:.2f}<extra></extra>"
-                            ))
+    # ── ROW 6: Deep-dive use-case tables ─────────────────────────
+    st.markdown('<div class="section-label" style="margin-top:20px">📊 DEEP-DIVE ANALYSIS</div>', unsafe_allow_html=True)
 
-                        # Discharge markers
-                        if len(discharge_df):
-                            fig.add_trace(go.Scatter(
-                                x=discharge_df["datetime"], y=discharge_df["price"],
-                                mode="markers", name="DISCHARGE ▲",
-                                marker=dict(color="#ff2d55", size=7, symbol="triangle-up",
-                                            line=dict(color="#030712", width=1)),
-                                hovertemplate="DISCHARGE<br>$%{y:.2f}<extra></extra>"
-                            ))
+    USE_CASES = {
+        "arbitrage":     ("💰 Arbitrage Revenue",   "Charge/discharge windows · BESS revenue estimate"),
+        "congestion":    ("🔥 Congestion Analysis", "Node-pair price spreads · bottleneck detection"),
+        "curtailment":   ("⚠️ Curtailment Risk",    "Negative price frequency · renewable impact"),
+        "bess_dispatch": ("⚡ BESS Dispatch",        "Optimal dispatch schedule · P&L"),
+        "ftr":           ("🎯 FTR Scanner",          "Node-pair FTR value · win rate"),
+        "revenue":       ("🏗️ Revenue Model",        "Solar · Wind · BESS annual revenue per MW"),
+    }
 
-                        # Layout — match BESS dashboard style
-                        fig.update_layout(
-                            title=dict(text=f"LMP PRICE CHART — {chart_title}",
-                                       font=dict(family="Orbitron", size=12, color="#3a6080"), x=0.01),
-                            height=400,
-                            paper_bgcolor="#030712",
-                            plot_bgcolor="#060d1a",
-                            font=dict(family="Share Tech Mono", color="#c8e6ff", size=10),
-                            xaxis=dict(
-                                gridcolor="#0a1f35", linecolor="#1a3050",
-                                tickfont=dict(size=10, color="#3a6080"),
-                                title=dict(text="Hour (CST)", font=dict(color="#3a6080")),
-                                rangeslider=dict(visible=True, thickness=0.04,
-                                                 bgcolor="#030712", bordercolor="#0a1f35"),
-                                type="date",
-                            ),
-                            yaxis=dict(
-                                gridcolor="#0a1f35", linecolor="#1a3050",
-                                tickfont=dict(size=10, color="#3a6080"),
-                                title=dict(text="LMP ($/MWh)", font=dict(color="#3a6080")),
-                                tickprefix="$",
-                            ),
-                            legend=dict(
-                                bgcolor="rgba(6,13,26,0.85)",
-                                bordercolor="#1a3050", borderwidth=1,
-                                font=dict(size=10), orientation="h",
-                                yanchor="bottom", y=1.02, xanchor="left", x=0,
-                            ),
-                            margin=dict(l=60, r=20, t=48, b=60),
-                            hovermode="x unified",
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
+    uc_sel = st.selectbox(
+        "Analysis module",
+        list(USE_CASES.keys()),
+        format_func=lambda k: USE_CASES[k][0],
+        key=f"{key_prefix}_uc_sel",
+        label_visibility="collapsed"
+    )
+    uc_title, uc_desc = USE_CASES[uc_sel]
+    st.markdown(f'<div style="font-family:Share Tech Mono,monospace;font-size:10px;color:#3a6080;margin-bottom:10px">{uc_desc}</div>', unsafe_allow_html=True)
 
-                        # ── Legend annotation ───────────────────────────
-                        st.markdown(f"""
-                        <div style="font-family:Share Tech Mono,monospace;font-size:10px;color:#3a6080;
-                             display:flex;gap:24px;padding:5px 8px;background:rgba(0,0,0,0.3);
-                             border-radius:3px;flex-wrap:wrap">
-                            <span style="color:#00ff9d">▼ CHARGE windows</span>
-                            <span style="color:#ff2d55">▲ DISCHARGE windows</span>
-                            <span>···· MA3 rolling average</span>
-                            <span style="color:{vol_color}">volatility: {vol_label} ({volatility:.1f} σ)</span>
-                        </div>
-                        """, unsafe_allow_html=True)
+    batt_mw, batt_mwh, eff = 100, 400, 0.85
+    if uc_sel in ["arbitrage", "bess_dispatch"]:
+        bc1, bc2, bc3, _ = st.columns([1,1,1,3])
+        batt_mw  = bc1.number_input("MW",  value=100, min_value=1,   key=f"{key_prefix}_bmw")
+        batt_mwh = bc2.number_input("MWh", value=400, min_value=10,  key=f"{key_prefix}_bmwh")
+        eff      = bc3.number_input("η",   value=0.85, min_value=0.5, max_value=1.0, step=0.01, key=f"{key_prefix}_eff")
 
-                        # ── Multi-bus comparison chart ──────────────────
-                        if len(bus_list) > 1:
-                            st.markdown('<div class="section-label" style="margin-top:16px">MULTI-BUS COMPARISON</div>', unsafe_allow_html=True)
-                            fig2 = go.Figure()
-                            colors = ["#00ff9d","#00c8ff","#ff6b00","#d966ff","#ffd700","#ff2d55"]
-                            for idx, bus in enumerate(bus_list[:6]):
-                                bdf2 = matched[matched["_bus_up"]==bus].copy()
-                                bdf2["datetime"] = pd.to_datetime(bdf2["datetime"], errors="coerce")
-                                if not show_all and d_min != d_max:
-                                    bdf2 = bdf2[bdf2["datetime"].dt.date == sel_date]
-                                bdf2 = bdf2.dropna(subset=["datetime"]).sort_values("datetime")
-                                if bdf2.empty: continue
-                                bdf2 = bdf2.set_index("datetime")["price"].resample("15min").mean().reset_index()
-                                bdf2.columns = ["datetime","price"]
-                                is_sel = (bus == sel_bus)
-                                fig2.add_trace(go.Scatter(
-                                    x=bdf2["datetime"], y=bdf2["price"],
-                                    mode="lines", name=bus,
-                                    line=dict(color=colors[idx % len(colors)],
-                                              width=2.5 if is_sel else 1.2,
-                                              dash="solid" if is_sel else "solid"),
-                                    opacity=1.0 if is_sel else 0.6,
-                                    hovertemplate=f"<b>{bus}</b><br>$%{{y:.2f}}<extra></extra>"
-                                ))
+    run_btn = st.button(f"Run {uc_title} →", key=f"{key_prefix}_run_{uc_sel}",
+                        type="primary", use_container_width=False)
 
-                            fig2.update_layout(
-                                title=dict(text="ALL BUSES — PRICE COMPARISON",
-                                           font=dict(family="Orbitron", size=12, color="#3a6080"), x=0.01),
-                                height=300,
-                                paper_bgcolor="#030712", plot_bgcolor="#060d1a",
-                                font=dict(family="Share Tech Mono", color="#c8e6ff", size=10),
-                                xaxis=dict(gridcolor="#0a1f35", linecolor="#1a3050",
-                                           tickfont=dict(size=10, color="#3a6080"), type="date"),
-                                yaxis=dict(gridcolor="#0a1f35", linecolor="#1a3050",
-                                           tickfont=dict(size=10, color="#3a6080"), tickprefix="$"),
-                                legend=dict(bgcolor="rgba(6,13,26,0.85)", bordercolor="#1a3050",
-                                            borderwidth=1, font=dict(size=10),
-                                            orientation="h", yanchor="bottom", y=1.02, x=0),
-                                margin=dict(l=60, r=20, t=48, b=40),
-                                hovermode="x unified",
-                            )
-                            st.plotly_chart(fig2, use_container_width=True)
+    result = None
+    if run_btn:
+        with st.spinner("Analysing..."):
+            result, err = run_lmp_analytics(matched.copy(), resolved_df, uc_sel, batt_mw, batt_mwh, eff)
+        if err:
+            st.error(err); result = None
+        else:
+            for old_uc in list(USE_CASES.keys()):
+                if old_uc != uc_sel:
+                    st.session_state.pop(f"{key_prefix}_uc_result_{old_uc}", None)
+            st.session_state[f"{key_prefix}_uc_result_{uc_sel}"] = result
+    elif f"{key_prefix}_uc_result_{uc_sel}" in st.session_state:
+        result = st.session_state[f"{key_prefix}_uc_result_{uc_sel}"]
 
-        # ── Arbitrage ─────────────────────────────────────────
-        elif uc_sel == "arbitrage" and isinstance(result, pd.DataFrame):
-                st.dataframe(result, use_container_width=True,
-                    column_config={
-                        "Daily Revenue $":  st.column_config.NumberColumn(format="$%.0f"),
-                        "Annual Revenue $": st.column_config.NumberColumn(format="$%.0f"),
-                    })
-                bus_col = "Bus" if "Bus" in result.columns else ("_bus_up" if "_bus_up" in result.columns else result.columns[0])
-                fig = go.Figure(go.Bar(
-                    x=result[bus_col], y=result["Annual Revenue $"],
-                    marker_color="#00ff9d",
-                    marker_line_color="rgba(0,255,157,0.5)", marker_line_width=1
-                ))
-                fig.update_layout(**neon_plotly_layout("ANNUAL ARBITRAGE REVENUE BY BUS", 280))
-                st.plotly_chart(fig, use_container_width=True)
-                st.download_button("↓ Export Arbitrage Analysis", data=to_csv_bytes(result),
-                    file_name="arbitrage_analysis.csv", mime="text/csv", key=f"{key_prefix}_dl_arb")
+    if result is None:
+        pass
 
-        # ── Congestion ────────────────────────────────────────
-        elif uc_sel == "congestion" and isinstance(result, pd.DataFrame):
-                st.dataframe(result, use_container_width=True)
-                if len(result) and "Bus A" in result.columns:
-                    fig = go.Figure(go.Bar(
-                        x=result["Bus A"] + " ↔ " + result["Bus B"],
-                        y=result["Avg Spread $/MWh"],
-                        marker_color="#ff6b00",
-                        marker_line_color="rgba(255,107,0,0.5)", marker_line_width=1
-                    ))
-                    fig.update_layout(**neon_plotly_layout("CONGESTION SPREAD BY NODE PAIR", 280))
-                    st.plotly_chart(fig, use_container_width=True)
-                st.download_button("↓ Export Congestion Analysis", data=to_csv_bytes(result),
-                    file_name="congestion_analysis.csv", mime="text/csv", key=f"{key_prefix}_dl_cong")
+    elif uc_sel == "arbitrage" and isinstance(result, pd.DataFrame):
+        st.dataframe(result, use_container_width=True,
+            column_config={"Daily Revenue $": st.column_config.NumberColumn(format="$%.0f"),
+                           "Annual Revenue $": st.column_config.NumberColumn(format="$%.0f")})
+        bus_col = "Bus" if "Bus" in result.columns else result.columns[0]
+        fig_a = go.Figure(go.Bar(x=result[bus_col], y=result["Annual Revenue $"],
+            marker_color="#00ff9d", marker_line_color="rgba(0,255,157,0.4)", marker_line_width=1))
+        fig_a.update_layout(**neon_plotly_layout("ANNUAL ARBITRAGE REVENUE BY BUS", 260))
+        st.plotly_chart(fig_a, use_container_width=True)
+        st.download_button("↓ Arbitrage CSV", data=to_csv_bytes(result),
+                           file_name="arbitrage.csv", mime="text/csv", key=f"{key_prefix}_dl_arb")
 
-        # ── Curtailment ───────────────────────────────────────
-        elif uc_sel == "curtailment" and isinstance(result, pd.DataFrame):
-                for _, row in result.iterrows():
-                    risk_col = {"HIGH":"#ff2d55","MED":"#ff6b00","LOW":"#00ff9d"}.get(row.get("Curtailment Risk",""), "#3a6080")
-                    st.markdown(f"""
-                    <div style="background:rgba({{'HIGH':'255,45,85','MED':'255,107,0','LOW':'0,255,157'}}.get('{row.get("Curtailment Risk","")}','58,96,128'),0.06);
-                         border:1px solid {risk_col};border-radius:4px;padding:10px 16px;margin-bottom:8px;
-                         display:flex;justify-content:space-between;align-items:center">
-                        <span style="font-family:Orbitron,monospace;font-size:12px;color:#00c8ff">{row["Bus"]}</span>
-                        <span style="font-family:Share Tech Mono,monospace;font-size:11px;color:#c8e6ff">Neg: <b style="color:{risk_col}">{row["Negative Price %"]}%</b></span>
-                        <span style="font-family:Share Tech Mono,monospace;font-size:11px;color:#c8e6ff">Avg: ${row["Avg Price $/MWh"]}/MWh</span>
-                        <span style="font-family:Orbitron,monospace;font-size:11px;color:{risk_col};text-shadow:0 0 6px {risk_col}">{row["Curtailment Risk"]}</span>
-                    </div>""", unsafe_allow_html=True)
-                st.download_button("↓ Export Curtailment Analysis", data=to_csv_bytes(result),
-                    file_name="curtailment_analysis.csv", mime="text/csv", key=f"{key_prefix}_dl_curt")
+    elif uc_sel == "congestion" and isinstance(result, pd.DataFrame):
+        st.dataframe(result, use_container_width=True)
+        if len(result) and "Bus A" in result.columns:
+            fig_c = go.Figure(go.Bar(
+                x=result["Bus A"] + " ↔ " + result["Bus B"],
+                y=result["Avg Spread $/MWh"],
+                marker_color="#ff6b00", marker_line_color="rgba(255,107,0,0.4)", marker_line_width=1))
+            fig_c.update_layout(**neon_plotly_layout("CONGESTION SPREAD", 260))
+            st.plotly_chart(fig_c, use_container_width=True)
+        st.download_button("↓ Congestion CSV", data=to_csv_bytes(result),
+                           file_name="congestion.csv", mime="text/csv", key=f"{key_prefix}_dl_cong")
 
-        # ── BESS Dispatch ─────────────────────────────────────
-        elif uc_sel == "bess_dispatch" and isinstance(result, dict):
-                bdf  = result["data"]
-                bus  = result["bus"]
-                m1,m2,m3 = st.columns(3)
-                m1.metric("Net Revenue",       f"${result['net_revenue']:,.0f}")
-                m2.metric("Charge Hours",      result["charge_hours"])
-                m3.metric("Discharge Hours",   result["discharge_hours"])
+    elif uc_sel == "curtailment" and isinstance(result, pd.DataFrame):
+        for _, row in result.iterrows():
+            rc = {"HIGH":"#ff2d55","MED":"#ff6b00","LOW":"#00ff9d"}.get(row.get("Curtailment Risk",""), "#3a6080")
+            st.markdown(f"""
+            <div style="background:rgba(6,13,26,0.8);border:1px solid {rc};border-radius:4px;
+                 padding:10px 16px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-family:Share Tech Mono,monospace;font-size:12px;color:#00c8ff">{row["Bus"]}</span>
+                <span style="font-family:Share Tech Mono,monospace;font-size:11px;color:#c8e6ff">Neg: <b style="color:{rc}">{row["Negative Price %"]}%</b></span>
+                <span style="font-family:Share Tech Mono,monospace;font-size:11px;color:#c8e6ff">Avg: ${row["Avg Price $/MWh"]}/MWh</span>
+                <span style="font-family:Orbitron,monospace;font-size:11px;color:{rc};text-shadow:0 0 6px {rc}">{row["Curtailment Risk"]}</span>
+            </div>""", unsafe_allow_html=True)
+        st.download_button("↓ Curtailment CSV", data=to_csv_bytes(result),
+                           file_name="curtailment.csv", mime="text/csv", key=f"{key_prefix}_dl_curt")
 
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=bdf["datetime"], y=bdf["price"],
-                    mode="lines", name="LMP", line=dict(color="#00c8ff", width=1.5)))
-                fig.add_trace(go.Scatter(x=bdf["datetime"], y=bdf["roll_avg"],
-                    mode="lines", name="Rolling Avg", line=dict(color="#ff6b00", width=1.5, dash="dot")))
+    elif uc_sel == "bess_dispatch" and isinstance(result, dict):
+        bdf2  = result["data"]
+        bus2  = result["bus"]
+        dm1,dm2,dm3 = st.columns(3)
+        dm1.metric("Net Revenue",    f"${result['net_revenue']:,.0f}")
+        dm2.metric("Charge Hours",   result["charge_hours"])
+        dm3.metric("Discharge Hours",result["discharge_hours"])
+        fig_b = go.Figure()
+        fig_b.add_trace(go.Scatter(x=bdf2["datetime"], y=bdf2["price"],
+            mode="lines", name="LMP", line=dict(color="#00c8ff", width=1.5)))
+        fig_b.add_trace(go.Scatter(x=bdf2["datetime"], y=bdf2["roll_avg"],
+            mode="lines", name="Rolling Avg", line=dict(color="#ff6b00", width=1.5, dash="dot")))
+        c_df = bdf2[bdf2["signal"]=="CHARGE"]
+        d_df = bdf2[bdf2["signal"]=="DISCHARGE"]
+        if len(c_df): fig_b.add_trace(go.Scatter(x=c_df["datetime"], y=c_df["price"], mode="markers",
+            name="CHARGE", marker=dict(color="#00ff9d", size=8, symbol="triangle-down")))
+        if len(d_df): fig_b.add_trace(go.Scatter(x=d_df["datetime"], y=d_df["price"], mode="markers",
+            name="DISCHARGE", marker=dict(color="#ff2d55", size=8, symbol="triangle-up")))
+        fig_b.update_layout(**neon_plotly_layout(f"BESS DISPATCH — {bus2}", 300))
+        st.plotly_chart(fig_b, use_container_width=True)
+        st.download_button("↓ Dispatch CSV", data=to_csv_bytes(bdf2),
+                           file_name="bess_dispatch.csv", mime="text/csv", key=f"{key_prefix}_dl_bess")
 
-                charge_df    = bdf[bdf["signal"]=="CHARGE"]
-                discharge_df = bdf[bdf["signal"]=="DISCHARGE"]
-                fig.add_trace(go.Scatter(x=charge_df["datetime"], y=charge_df["price"],
-                    mode="markers", name="CHARGE", marker=dict(color="#00ff9d", size=8, symbol="triangle-down")))
-                fig.add_trace(go.Scatter(x=discharge_df["datetime"], y=discharge_df["price"],
-                    mode="markers", name="DISCHARGE", marker=dict(color="#ff2d55", size=8, symbol="triangle-up")))
+    elif uc_sel == "ftr" and isinstance(result, pd.DataFrame):
+        st.dataframe(result, use_container_width=True,
+            column_config={"Avg FTR Value $/MWh": st.column_config.NumberColumn(format="$%.2f"),
+                           "Max FTR Value $/MWh": st.column_config.NumberColumn(format="$%.2f"),
+                           "Win Rate %": st.column_config.NumberColumn(format="%.1f%%")})
+        st.download_button("↓ FTR CSV", data=to_csv_bytes(result),
+                           file_name="ftr.csv", mime="text/csv", key=f"{key_prefix}_dl_ftr")
 
-                fig.update_layout(**neon_plotly_layout(f"BESS DISPATCH SCHEDULE — {bus}", 360))
-                st.plotly_chart(fig, use_container_width=True)
-                st.download_button("↓ Export Dispatch Schedule", data=to_csv_bytes(bdf),
-                    file_name="bess_dispatch.csv", mime="text/csv", key=f"{key_prefix}_dl_bess")
+    elif uc_sel == "revenue" and isinstance(result, pd.DataFrame):
+        st.dataframe(result, use_container_width=True,
+            column_config={"Annual Solar Rev ($/MW)": st.column_config.NumberColumn(format="$%.0f"),
+                           "Annual Wind Rev ($/MW)":  st.column_config.NumberColumn(format="$%.0f"),
+                           "Annual BESS Rev ($/MW)":  st.column_config.NumberColumn(format="$%.0f")})
+        st.download_button("↓ Revenue CSV", data=to_csv_bytes(result),
+                           file_name="revenue.csv", mime="text/csv", key=f"{key_prefix}_dl_rev")
 
-        # ── FTR ───────────────────────────────────────────────
-        elif uc_sel == "ftr" and isinstance(result, pd.DataFrame):
-                st.dataframe(result, use_container_width=True,
-                    column_config={
-                        "Avg FTR Value $/MWh": st.column_config.NumberColumn(format="$%.2f"),
-                        "Max FTR Value $/MWh": st.column_config.NumberColumn(format="$%.2f"),
-                        "Win Rate %": st.column_config.NumberColumn(format="%.1f%%"),
-                    })
-                st.download_button("↓ Export FTR Analysis", data=to_csv_bytes(result),
-                    file_name="ftr_analysis.csv", mime="text/csv", key=f"{key_prefix}_dl_ftr")
-
-        # ── Revenue ───────────────────────────────────────────
-        elif uc_sel == "revenue" and isinstance(result, pd.DataFrame):
-                st.dataframe(result, use_container_width=True,
-                    column_config={
-                        "Annual Solar Rev ($/MW)": st.column_config.NumberColumn(format="$%.0f"),
-                        "Annual Wind Rev ($/MW)":  st.column_config.NumberColumn(format="$%.0f"),
-                        "Annual BESS Rev ($/MW)":  st.column_config.NumberColumn(format="$%.0f"),
-                    })
-                st.download_button("↓ Export Revenue Analysis", data=to_csv_bytes(result),
-                    file_name="revenue_analysis.csv", mime="text/csv", key=f"{key_prefix}_dl_rev")
-
-    # ── PDF Export ────────────────────────────────────────────────
-    st.markdown('<div class="section-label">📄 EXPORT REPORT</div>', unsafe_allow_html=True)
+    # ── PDF export ────────────────────────────────────────────────
+    st.markdown('<div class="section-label" style="margin-top:16px">📄 EXPORT REPORT</div>', unsafe_allow_html=True)
     lmp_summary = None
-    if ldf is not None and "bus" in ldf.columns:
-        try:
-            lmp_summary = matched.groupby("_bus_up")["price"].agg(
-                Mean="mean", Max="max", Min="min", Count="count"
-            ).reset_index().round(2)
-        except: pass
+    try:
+        lmp_summary = matched.groupby("_bus_up")["price"].agg(
+            Mean="mean", Max="max", Min="min", Count="count").reset_index().round(2)
+    except: pass
 
     if ercot_sub and resolved_df is not None:
         pdf_bytes = generate_pdf_report(search_results, ercot_sub, resolved_df, lmp_summary)
@@ -1240,61 +1192,10 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
             key=f"{key_prefix}_pdf_dl",
             type="primary",
         )
-
     return ldf
 
 
-# ═══════════════════════════════════════════════════════════════════
-# Sidebar
-# ═══════════════════════════════════════════════════════════════════
-with st.sidebar:
-    st.markdown("""
-    <div style="padding:14px 0 16px">
-        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#00ff9d;
-             letter-spacing:.3em;text-transform:uppercase;margin-bottom:5px;text-shadow:0 0 8px #00ff9d">⚡ SunStripe · ERCOT</div>
-        <div style="font-family:'Orbitron',monospace;font-size:13px;font-weight:700;
-             color:#c8e6ff;line-height:1.5;letter-spacing:.05em">NODAL ANALYSIS<br>
-             <span style="color:#00ff9d;text-shadow:0 0 10px #00ff9d">PLATFORM</span></div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("---")
 
-    page = st.radio("", [
-        "🗺️ Infrastructure Map",
-        "⚡ Node & Hub Selector",
-        "🔍 Bus Lookup",
-        "🏭 Substation Lookup",
-        "📋 Browse All",
-    ], label_visibility="collapsed")
-
-    st.markdown("---")
-    st.markdown(f"""
-    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#3a6080;
-         letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;
-         border-bottom:1px solid #0a1f35;padding-bottom:6px">// DATASET · FEB 2026</div>
-    <div style="display:flex;flex-direction:column;gap:9px">
-        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00ff9d;text-shadow:0 0 10px #00ff9d">{len(df):,}</div><div style="font-size:10px;color:#3a6080">Settlement Points</div></div>
-        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00c8ff;text-shadow:0 0 10px #00c8ff">{df["Substation"].nunique():,}</div><div style="font-size:10px;color:#3a6080">Substations</div></div>
-        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#ff6b00;text-shadow:0 0 10px #ff6b00">{df[df["Hub"]!=""]["Hub"].nunique()}</div><div style="font-size:10px;color:#3a6080">Hubs</div></div>
-        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00ff9d;text-shadow:0 0 10px #00ff9d">{df[df["Resource Node"]!=""].shape[0]:,}</div><div style="font-size:10px;color:#3a6080">Resource Nodes</div></div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("""
-    <a href="https://ercot-bess-dashboard-nhh9eztsqeuqxxuz97kacu.streamlit.app/" target="_blank"
-       style="display:block;padding:7px 10px;background:#091424;border-radius:4px;border:1px solid #0a1f35;
-              font-family:'Share Tech Mono',monospace;font-size:11px;color:#3a6080;text-decoration:none;margin-bottom:5px">
-              ⚡ ERCOT BESS Dashboard ↗</a>
-    <a href="https://fatal-flaw-o7aks4agtoffgyydbvrguj.streamlit.app/" target="_blank"
-       style="display:block;padding:7px 10px;background:#091424;border-radius:4px;border:1px solid #0a1f35;
-              font-family:'Share Tech Mono',monospace;font-size:11px;color:#3a6080;text-decoration:none">
-              🌿 SiteIQ Fatal Flaw ↗</a>
-    """, unsafe_allow_html=True)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# PAGE 1: INFRASTRUCTURE MAP
-# ═══════════════════════════════════════════════════════════════════════════════
 if page == "🗺️ Infrastructure Map":
 
     st.markdown("""<div class="page-header">
