@@ -854,21 +854,29 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 
         run_btn = st.button(f"Run {uc_title} →", key=f"{key_prefix}_run_{uc_sel}", type="primary", use_container_width=True)
 
-        if run_btn or f"{key_prefix}_uc_result_{uc_sel}" in st.session_state:
-            if run_btn:
-                with st.spinner("Analysing..."):
-                    result, err = run_lmp_analytics(matched.copy(), resolved_df, uc_sel, batt_mw, batt_mwh, eff)
-                if err:
-                    st.error(err)
-                else:
-                    st.session_state[f"{key_prefix}_uc_result_{uc_sel}"] = result
+        result = None
+        if run_btn:
+            with st.spinner("Analysing..."):
+                result, err = run_lmp_analytics(matched.copy(), resolved_df, uc_sel, batt_mw, batt_mwh, eff)
+            if err:
+                st.error(err)
+                result = None
             else:
-                result = st.session_state.get(f"{key_prefix}_uc_result_{uc_sel}")
+                # Store per use-case — clear other use-case results to avoid cross-contamination
+                for old_uc in ["24h_profile","arbitrage","congestion","curtailment","bess_dispatch","ftr","revenue"]:
+                    if old_uc != uc_sel:
+                        st.session_state.pop(f"{key_prefix}_uc_result_{old_uc}", None)
+                st.session_state[f"{key_prefix}_uc_result_{uc_sel}"] = result
+        elif f"{key_prefix}_uc_result_{uc_sel}" in st.session_state:
+            result = st.session_state[f"{key_prefix}_uc_result_{uc_sel}"]
 
-            if result is None:
-                pass
-            # ── 24h Profile ──────────────────────────────────────
-            elif uc_sel == "24h_profile":
+        if result is not None and not run_btn:
+            st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:10px;color:#3a6080;margin-bottom:8px">// cached result — click Run to refresh</div>', unsafe_allow_html=True)
+
+        if result is None:
+            pass
+        # ── 24h Profile ──────────────────────────────────────
+        elif uc_sel == "24h_profile":
                 bus_list = sorted(matched["_bus_up"].unique().tolist())
 
                 # ── Bus selector + date picker ────────────────────
@@ -1114,15 +1122,16 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                             )
                             st.plotly_chart(fig2, use_container_width=True)
 
-            # ── Arbitrage ─────────────────────────────────────────
-            elif uc_sel == "arbitrage" and isinstance(result, pd.DataFrame):
+        # ── Arbitrage ─────────────────────────────────────────
+        elif uc_sel == "arbitrage" and isinstance(result, pd.DataFrame):
                 st.dataframe(result, use_container_width=True,
                     column_config={
                         "Daily Revenue $":  st.column_config.NumberColumn(format="$%.0f"),
                         "Annual Revenue $": st.column_config.NumberColumn(format="$%.0f"),
                     })
+                bus_col = "Bus" if "Bus" in result.columns else ("_bus_up" if "_bus_up" in result.columns else result.columns[0])
                 fig = go.Figure(go.Bar(
-                    x=result["Bus"], y=result["Annual Revenue $"],
+                    x=result[bus_col], y=result["Annual Revenue $"],
                     marker_color="#00ff9d",
                     marker_line_color="rgba(0,255,157,0.5)", marker_line_width=1
                 ))
@@ -1131,10 +1140,10 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 st.download_button("↓ Export Arbitrage Analysis", data=to_csv_bytes(result),
                     file_name="arbitrage_analysis.csv", mime="text/csv", key=f"{key_prefix}_dl_arb")
 
-            # ── Congestion ────────────────────────────────────────
-            elif uc_sel == "congestion" and isinstance(result, pd.DataFrame):
+        # ── Congestion ────────────────────────────────────────
+        elif uc_sel == "congestion" and isinstance(result, pd.DataFrame):
                 st.dataframe(result, use_container_width=True)
-                if len(result):
+                if len(result) and "Bus A" in result.columns:
                     fig = go.Figure(go.Bar(
                         x=result["Bus A"] + " ↔ " + result["Bus B"],
                         y=result["Avg Spread $/MWh"],
@@ -1146,8 +1155,8 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 st.download_button("↓ Export Congestion Analysis", data=to_csv_bytes(result),
                     file_name="congestion_analysis.csv", mime="text/csv", key=f"{key_prefix}_dl_cong")
 
-            # ── Curtailment ───────────────────────────────────────
-            elif uc_sel == "curtailment" and isinstance(result, pd.DataFrame):
+        # ── Curtailment ───────────────────────────────────────
+        elif uc_sel == "curtailment" and isinstance(result, pd.DataFrame):
                 for _, row in result.iterrows():
                     risk_col = {"HIGH":"#ff2d55","MED":"#ff6b00","LOW":"#00ff9d"}.get(row.get("Curtailment Risk",""), "#3a6080")
                     st.markdown(f"""
@@ -1162,8 +1171,8 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 st.download_button("↓ Export Curtailment Analysis", data=to_csv_bytes(result),
                     file_name="curtailment_analysis.csv", mime="text/csv", key=f"{key_prefix}_dl_curt")
 
-            # ── BESS Dispatch ─────────────────────────────────────
-            elif uc_sel == "bess_dispatch" and isinstance(result, dict):
+        # ── BESS Dispatch ─────────────────────────────────────
+        elif uc_sel == "bess_dispatch" and isinstance(result, dict):
                 bdf  = result["data"]
                 bus  = result["bus"]
                 m1,m2,m3 = st.columns(3)
@@ -1189,8 +1198,8 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 st.download_button("↓ Export Dispatch Schedule", data=to_csv_bytes(bdf),
                     file_name="bess_dispatch.csv", mime="text/csv", key=f"{key_prefix}_dl_bess")
 
-            # ── FTR ───────────────────────────────────────────────
-            elif uc_sel == "ftr" and isinstance(result, pd.DataFrame):
+        # ── FTR ───────────────────────────────────────────────
+        elif uc_sel == "ftr" and isinstance(result, pd.DataFrame):
                 st.dataframe(result, use_container_width=True,
                     column_config={
                         "Avg FTR Value $/MWh": st.column_config.NumberColumn(format="$%.2f"),
@@ -1200,8 +1209,8 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 st.download_button("↓ Export FTR Analysis", data=to_csv_bytes(result),
                     file_name="ftr_analysis.csv", mime="text/csv", key=f"{key_prefix}_dl_ftr")
 
-            # ── Revenue ───────────────────────────────────────────
-            elif uc_sel == "revenue" and isinstance(result, pd.DataFrame):
+        # ── Revenue ───────────────────────────────────────────
+        elif uc_sel == "revenue" and isinstance(result, pd.DataFrame):
                 st.dataframe(result, use_container_width=True,
                     column_config={
                         "Annual Solar Rev ($/MW)": st.column_config.NumberColumn(format="$%.0f"),
