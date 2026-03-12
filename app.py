@@ -1196,6 +1196,54 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 
 
 
+# ═══════════════════════════════════════════════════════════════════
+# Sidebar
+# ═══════════════════════════════════════════════════════════════════
+with st.sidebar:
+    st.markdown("""
+    <div style="padding:14px 0 16px">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#00ff9d;
+             letter-spacing:.3em;text-transform:uppercase;margin-bottom:5px;text-shadow:0 0 8px #00ff9d">⚡ SunStripe · ERCOT</div>
+        <div style="font-family:'Orbitron',monospace;font-size:13px;font-weight:700;
+             color:#c8e6ff;line-height:1.5;letter-spacing:.05em">NODAL ANALYSIS<br>
+             <span style="color:#00ff9d;text-shadow:0 0 10px #00ff9d">PLATFORM</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("---")
+
+    page = st.radio("", [
+        "🗺️ Infrastructure Map",
+        "⚡ Node & Hub Selector",
+        "🔍 Bus Lookup",
+        "🏭 Substation Lookup",
+        "📋 Browse All",
+    ], label_visibility="collapsed")
+
+    st.markdown("---")
+    st.markdown(f"""
+    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#3a6080;
+         letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;
+         border-bottom:1px solid #0a1f35;padding-bottom:6px">// DATASET · FEB 2026</div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00ff9d;text-shadow:0 0 10px #00ff9d">{len(df):,}</div><div style="font-size:10px;color:#3a6080">Settlement Points</div></div>
+        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00c8ff;text-shadow:0 0 10px #00c8ff">{df["Substation"].nunique():,}</div><div style="font-size:10px;color:#3a6080">Substations</div></div>
+        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#ff6b00;text-shadow:0 0 10px #ff6b00">{df[df["Hub"]!=""]["Hub"].nunique()}</div><div style="font-size:10px;color:#3a6080">Hubs</div></div>
+        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00ff9d;text-shadow:0 0 10px #00ff9d">{df[df["Resource Node"]!=""].shape[0]:,}</div><div style="font-size:10px;color:#3a6080">Resource Nodes</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("""
+    <a href="https://ercot-bess-dashboard-nhh9eztsqeuqxxuz97kacu.streamlit.app/" target="_blank"
+       style="display:block;padding:7px 10px;background:#091424;border-radius:4px;border:1px solid #0a1f35;
+              font-family:'Share Tech Mono',monospace;font-size:11px;color:#3a6080;text-decoration:none;margin-bottom:5px">
+              ⚡ ERCOT BESS Dashboard ↗</a>
+    <a href="https://fatal-flaw-o7aks4agtoffgyydbvrguj.streamlit.app/" target="_blank"
+       style="display:block;padding:7px 10px;background:#091424;border-radius:4px;border:1px solid #0a1f35;
+              font-family:'Share Tech Mono',monospace;font-size:11px;color:#3a6080;text-decoration:none">
+              🌿 SiteIQ Fatal Flaw ↗</a>
+    """, unsafe_allow_html=True)
+
+
 if page == "🗺️ Infrastructure Map":
 
     st.markdown("""<div class="page-header">
