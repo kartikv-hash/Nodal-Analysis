@@ -850,13 +850,40 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         st.warning(f"No data for {sel_date}. Try 'All dates'.")
         return None
 
-    # Resample
-    plot_df = (plot_df.set_index("datetime")["price"]
-               .resample(resample_opt).mean()
-               .reset_index()
-               .rename(columns={"price":"price","datetime":"datetime"})
-               .dropna())
-    plot_df.columns = ["datetime","price"]
+    # ── Smart resample: detect if timestamps are sub-second (SCED 5-min data
+    # stored with millisecond noise) and fall back to positional grouping ──
+    plot_df = plot_df.copy().reset_index(drop=True)
+    time_span = (plot_df["datetime"].max() - plot_df["datetime"].min()).total_seconds()
+    n_rows    = len(plot_df)
+
+    if n_rows > 1 and time_span < 60:
+        # All rows crammed into <1 minute → timestamps are corrupt/noisy.
+        # Treat each row as one interval and group by positional bucket.
+        intervals = {"5min": max(1, n_rows//288), "15min": max(1, n_rows//96), "1h": max(1, n_rows//24)}
+        bucket_size = intervals.get(resample_opt, max(1, n_rows//96))
+        plot_df["_bucket"] = plot_df.index // bucket_size
+        # Rebuild synthetic evenly-spaced datetime (1 point per interval)
+        import numpy as np
+        total_seconds = 86400  # assume 1 day
+        bucket_seconds = total_seconds / max(plot_df["_bucket"].max()+1, 1)
+        agg = plot_df.groupby("_bucket").agg(price=("price","mean")).reset_index()
+        base_dt = plot_df["datetime"].iloc[0].normalize()  # midnight of that day
+        agg["datetime"] = [base_dt + pd.Timedelta(seconds=i*bucket_seconds) for i in agg["_bucket"]]
+        plot_df = agg[["datetime","price"]].dropna()
+        resample_label = f"{bucket_size}-row avg (fixed timestamps)"
+    else:
+        # Normal resample by time
+        plot_df = (plot_df.set_index("datetime")["price"]
+                   .resample(resample_opt).mean()
+                   .reset_index()
+                   .dropna())
+        plot_df.columns = ["datetime","price"]
+        resample_label = resample_opt
+
+    if plot_df.empty or len(plot_df) < 2:
+        st.warning("Not enough data points to plot. Try a different date or interval.")
+        return None
+
     plot_df["ma3"] = plot_df["price"].rolling(3, center=True, min_periods=1).mean()
 
     # ── ROW 4: Summary metrics ────────────────────────────────────
@@ -1003,7 +1030,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 
     fig.update_layout(
         title=dict(
-            text=f"LMP PRICE CHART — {date_label} — {resample_opt} intervals",
+            text=f"LMP PRICE CHART — {date_label} — {resample_label} intervals",
             font=dict(family="Orbitron", size=11, color="#3a6080"), x=0.01
         ),
         height=420,
