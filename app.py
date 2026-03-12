@@ -259,29 +259,46 @@ def parse_lmp_upload(uploaded_file):
         except Exception as e:
             return None, str(e)
 
-    # Auto-detect column names (ERCOT format varies slightly)
+    # Auto-detect columns — handles DAM, SCED, RTM, and all other ERCOT formats
     col_map = {}
     for c in combined.columns:
         u = c.upper().strip().replace(" ", "").replace("_", "")
-        if any(k in u for k in ["SETTLEMENTPOINTNAME","SETTLEMENTPOINT","SPNAME","BUSNAME","NODENAME"]):
-            col_map["bus"] = c
-        elif any(k in u for k in ["SETTLEMENTPOINTPRICE","PRICE","LMP","SPP"]):
-            col_map["price"] = c
+        if any(k in u for k in [
+            "SETTLEMENTPOINTNAME","SETTLEMENTPOINT","SPNAME",
+            "BUSNAME","NODENAME","ELECTRICALBUS","ELECBUS","BUSID","SETTLEMENTBUS",
+        ]):
+            if "bus" not in col_map: col_map["bus"] = c
+        elif any(k in u for k in [
+            "SETTLEMENTPOINTPRICE","PRICE","LMP","SPP","RTLMP","DAMLMP","MCPRICE",
+        ]):
+            if "price" not in col_map: col_map["price"] = c
+        elif any(k in u for k in [
+            "SCEDTIMESTAMP","TIMESTAMP","INTERVALTIME","OPERATINGHOUR","INTERVALENDING",
+        ]):
+            if "timestamp" not in col_map: col_map["timestamp"] = c
         elif any(k in u for k in ["HOURENDING","HOUROFDAY","HOUR","DELIVERYHOUR"]):
-            col_map["hour"] = c
-        elif any(k in u for k in ["DELIVERYDATE","DATE","TRADINGDATE"]):
-            col_map["date"] = c
+            if "hour" not in col_map: col_map["hour"] = c
+        elif any(k in u for k in ["DELIVERYDATE","TRADINGDATE"]):
+            if "date" not in col_map: col_map["date"] = c
+        elif u == "DATE":
+            if "date" not in col_map: col_map["date"] = c
 
     if "bus" not in col_map or "price" not in col_map:
         return combined, f"Could not detect columns. Found: {list(combined.columns)}"
 
-    # Rename to standard
     rename = {v: k for k, v in col_map.items()}
     combined = combined.rename(columns=rename)
     combined["price"] = pd.to_numeric(combined["price"], errors="coerce")
 
-    # Build datetime
-    if "date" in col_map and "hour" in combined.columns:
+    # Build datetime — priority: full timestamp > date+hour > hour > index
+    if "timestamp" in col_map:
+        combined["datetime"] = pd.to_datetime(combined["timestamp"], errors="coerce")
+        if combined["datetime"].isna().all():
+            combined["datetime"] = pd.to_datetime(
+                combined["timestamp"].str.replace(r"[+-]\d{2}:\d{2}$", "", regex=True),
+                errors="coerce"
+            )
+    elif "date" in col_map and "hour" in combined.columns:
         try:
             combined["hour_int"] = pd.to_numeric(combined["hour"], errors="coerce").fillna(0).astype(int)
             combined["datetime"] = pd.to_datetime(combined["date"], errors="coerce") + \
@@ -291,7 +308,7 @@ def parse_lmp_upload(uploaded_file):
     elif "hour" in combined.columns:
         combined["datetime"] = pd.to_numeric(combined["hour"], errors="coerce")
     else:
-        combined["datetime"] = range(len(combined))
+        combined["datetime"] = pd.RangeIndex(len(combined))
 
     return combined, None
 
@@ -771,8 +788,19 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         </div>""", unsafe_allow_html=True)
         return None
 
+    # Guard: ensure 'bus' column exists (different ERCOT file formats may name it differently)
+    if "bus" not in ldf.columns:
+        # Try to find a usable bus column from what was loaded
+        candidates = [c for c in ldf.columns if any(k in c.upper().replace("_","") for k in
+                      ["ELECTRICALBUS","SETTLEMENTPOINT","BUSNAME","NODENAME","ELECBUS"])]
+        if candidates:
+            ldf = ldf.rename(columns={candidates[0]: "bus"})
+        else:
+            st.error(f"Could not find a bus/node column. Columns in file: `{list(ldf.columns)}`")
+            return None
+
     buses_up  = set(resolved_df["Bus"].str.upper())
-    ldf["_bus_up"] = ldf["bus"].str.upper().str.strip()
+    ldf["_bus_up"] = ldf["bus"].astype(str).str.upper().str.strip()
     matched   = ldf[ldf["_bus_up"].isin(buses_up)].copy()
 
     m1,m2,m3,m4 = st.columns(4)
