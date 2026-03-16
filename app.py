@@ -847,6 +847,11 @@ def bess_calc(bdf: pd.DataFrame, half_w: int):
 # LMP Analytics engine — all use-cases
 # ═══════════════════════════════════════════════════════════════════
 def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, efficiency=0.85):
+    """
+    All use-case analytics. Congestion/Curtailment use the CI/CSS/CPI/ECS formulas
+    from the ERCOT analytics pipeline (see reference script).
+    """
+    import numpy as np
     buses = set(resolved_df["Bus"].str.upper())
     lmp_df["_bus_up"] = lmp_df["bus"].astype(str).str.upper().str.strip()
     matched = lmp_df[lmp_df["_bus_up"].isin(buses)].copy()
@@ -854,38 +859,121 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
         return None, "No matching buses in LMP data"
     matched = matched.sort_values("datetime")
 
+    # ── CONGESTION INDEX (CI) + CSS ───────────────────────────────
+    # CI(node, t) = LMP_hub(t) − LMP_node(t)
+    # CSS(node)   = mean(|CI|)  — Congestion Severity Score
     if use_case == "congestion":
-        pivot = matched.pivot_table(index="datetime", columns="_bus_up", values="price", aggfunc="mean")
-        if pivot.shape[1] < 2:
-            return None, "Need ≥2 buses for congestion analysis"
-        spreads = []
-        cols = pivot.columns.tolist()
-        for i in range(len(cols)):
-            for j in range(i+1, len(cols)):
-                diff = (pivot[cols[i]] - pivot[cols[j]]).abs()
-                spreads.append({"Bus A": cols[i], "Bus B": cols[j],
-                    "Avg Spread $/MWh": round(diff.mean(), 2),
-                    "Max Spread $/MWh": round(diff.max(), 2),
-                    "Congestion Hours": int((diff > 20).sum()),
-                    "Congestion %": round((diff > 20).mean() * 100, 1)})
-        return pd.DataFrame(spreads).sort_values("Avg Spread $/MWh", ascending=False), None
+        bus_list = matched["_bus_up"].unique().tolist()
+        if len(bus_list) < 2:
+            # Single-bus: compute CI vs synthetic mean of all available buses
+            pass
 
+        # Build hourly pivot: rows=time, cols=bus, values=LMP
+        pivot = matched.pivot_table(
+            index="datetime", columns="_bus_up", values="price", aggfunc="mean")
+
+        # Choose hub: prefer HB_ hub if present, else highest-avg-price bus
+        hub_candidates = [b for b in pivot.columns if b.startswith("HB_")]
+        if hub_candidates:
+            hub = hub_candidates[0]
+        else:
+            hub = pivot.mean().idxmax()
+
+        results = []
+        for node in pivot.columns:
+            if node == hub:
+                continue
+            ci_series = pivot[hub] - pivot[node]           # CI(node,t)
+            css       = ci_series.abs().mean()             # CSS = mean(|CI|)
+            congested_hours = int((ci_series.abs() > 10).sum())
+            congestion_pct  = round((ci_series.abs() > 10).mean() * 100, 1)
+            source_side     = int((ci_series >  10).sum())
+            load_side       = int((ci_series < -10).sum())
+            avg_ci          = round(ci_series.mean(), 2)
+            max_ci          = round(ci_series.abs().max(), 2)
+
+            # Risk label (from reference)
+            if css > 10:   cong_risk = "🔴 HIGH"
+            elif css > 3:  cong_risk = "🟡 MEDIUM"
+            else:          cong_risk = "🟢 LOW"
+
+            # Congestion Rent proxy: CR = CI × capacity_mw ($/hr)
+            cr_proxy = round(ci_series.mean() * batt_mw, 0)
+
+            results.append({
+                "Node":               node,
+                "Hub (reference)":    hub,
+                "Avg CI ($/MWh)":     avg_ci,
+                "CSS ($/MWh)":        round(css, 2),
+                "Max |CI| ($/MWh)":   max_ci,
+                "Congestion %":       congestion_pct,
+                "Congested Hours":    congested_hours,
+                "Source-Side Hours":  source_side,
+                "Load-Side Hours":    load_side,
+                "CR Proxy ($/hr)":    cr_proxy,
+                "Congestion Risk":    cong_risk,
+            })
+
+        if not results:
+            return None, "Not enough nodes for congestion analysis (need ≥2 buses)"
+
+        df_out = pd.DataFrame(results).sort_values("CSS ($/MWh)", ascending=False)
+        # Also return the full CI time-series for chart
+        df_out.attrs["pivot"]  = pivot
+        df_out.attrs["hub"]    = hub
+        return df_out, None
+
+    # ── CURTAILMENT PROBABILITY INDEX (CPI) + ECS ────────────────
+    # CPI(node) = (count LMP ≤ 0) / T × 100
+    # ECS       = 1 if LMP ≤ 0 (economic curtailment signal)
     elif use_case == "curtailment":
+        import numpy as np
         results = []
         for bus in matched["_bus_up"].unique():
-            bdf = matched[matched["_bus_up"] == bus]
+            bdf   = matched[matched["_bus_up"] == bus].copy()
             total = len(bdf)
-            neg   = (bdf["price"] < 0).sum()
-            results.append({"Bus": bus, "Total Hours": total,
-                "Negative Price Hours": int(neg),
-                "Negative Price %": round(neg/total*100, 1) if total else 0,
-                "≤$0 Hours": int((bdf["price"] <= 0).sum()),
-                "< -$20 Hours": int((bdf["price"] < -20).sum()),
-                "Avg Price $/MWh": round(bdf["price"].mean(), 2),
-                "Min Price $/MWh": round(bdf["price"].min(), 2),
-                "Curtailment Risk": "HIGH" if neg/total > 0.15 else "MED" if neg/total > 0.05 else "LOW"})
-        return pd.DataFrame(results), None
+            if total == 0: continue
 
+            # ECS per interval
+            bdf["ECS"] = (bdf["price"] <= 0).astype(int)
+
+            neg_count   = int((bdf["price"] < 0).sum())
+            zero_count  = int((bdf["price"] <= 0).sum())
+            deep_neg    = int((bdf["price"] < -20).sum())
+            cpi         = round(zero_count / total * 100, 2)    # CPI_%
+            avg_p       = round(bdf["price"].mean(), 2)
+            min_p       = round(bdf["price"].min(), 2)
+            p5          = round(bdf["price"].quantile(0.05), 2)
+
+            # Weighted curtailment: avg LMP during curtailed hours
+            curt_lmp    = round(bdf.loc[bdf["price"] <= 0, "price"].mean(), 2) if zero_count else 0.0
+
+            # ECS hours = consecutive curtailment windows
+            ecs_runs    = int((bdf["ECS"].diff() != 0).sum() // 2) if zero_count else 0
+
+            # Risk labels (from reference: >20% HIGH, >5% MEDIUM, else LOW)
+            if cpi > 20:   curt_risk = "🔴 HIGH"
+            elif cpi > 5:  curt_risk = "🟡 MEDIUM"
+            else:          curt_risk = "🟢 LOW"
+
+            results.append({
+                "Bus":                   bus,
+                "Total Intervals":       total,
+                "CPI % (LMP ≤ 0)":      cpi,
+                "Neg Price Hours":       neg_count,
+                "≤ $0 Hours":           zero_count,
+                "< −$20 Hours":         deep_neg,
+                "ECS Events":            ecs_runs,
+                "Avg LMP ($/MWh)":       avg_p,
+                "Min LMP ($/MWh)":       min_p,
+                "P5 LMP ($/MWh)":        p5,
+                "Avg Curtailed LMP":     curt_lmp,
+                "Curtailment Risk":      curt_risk,
+            })
+
+        return pd.DataFrame(results).sort_values("CPI % (LMP ≤ 0)", ascending=False), None
+
+    # ── FTR SCANNER ───────────────────────────────────────────────
     elif use_case == "ftr":
         pivot = matched.pivot_table(index="datetime", columns="_bus_up", values="price", aggfunc="mean")
         results = []
@@ -901,6 +989,7 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
                     "Win Rate %": round(len(pos_spread)/len(spread)*100, 1) if len(spread) else 0})
         return pd.DataFrame(results).sort_values("Avg FTR Value $/MWh", ascending=False), None
 
+    # ── REVENUE MODEL ─────────────────────────────────────────────
     elif use_case == "revenue":
         results = []
         for bus in matched["_bus_up"].unique():
@@ -909,8 +998,8 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
             results.append({"Bus": bus,
                 "Avg LMP $/MWh": round(avg, 2),
                 "Annual Solar Rev ($/MW)": round(avg * 8760 * 0.25, 0),
-                "Annual Wind Rev ($/MW)": round(avg * 8760 * 0.35, 0),
-                "Annual BESS Rev ($/MW)": round((bdf["price"].max()-bdf["price"].min())*365*0.5, 0),
+                "Annual Wind Rev ($/MW)":  round(avg * 8760 * 0.35, 0),
+                "Annual BESS Rev ($/MW)":  round((bdf["price"].max()-bdf["price"].min())*365*0.5, 0),
                 "P90 Price $/MWh": round(bdf["price"].quantile(0.1), 2),
                 "P10 Price $/MWh": round(bdf["price"].quantile(0.9), 2)})
         return pd.DataFrame(results), None
@@ -1355,28 +1444,218 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     if result is None:
         pass
 
+    # ══════════════════════════════════════════════════════════════
+    # CONGESTION — CI / CSS dashboard
+    # ══════════════════════════════════════════════════════════════
     elif uc_sel == "congestion" and isinstance(result, pd.DataFrame):
-        st.dataframe(result, use_container_width=True)
-        if len(result) and "Bus A" in result.columns:
-            fig_c = go.Figure(go.Bar(x=result["Bus A"]+" ↔ "+result["Bus B"],
-                y=result["Avg Spread $/MWh"],
-                marker_color="#1a3a7a", marker_line_color="rgba(26,58,122,0.3)", marker_line_width=1))
-            fig_c.update_layout(**neon_plotly_layout("Congestion Spread by Node Pair", 260))
-            st.plotly_chart(fig_c, use_container_width=True)
+        hub = result["Hub (reference)"].iloc[0] if len(result) else "—"
+        st.markdown(f"""
+        <div style="background:#f0efec;border-left:4px solid #1a3a7a;border-radius:2px;
+             padding:10px 16px;margin-bottom:14px;font-family:DM Sans,sans-serif;font-size:13px;color:#3d3d38">
+            <b>Congestion Index (CI)</b> = LMP<sub>hub</sub> − LMP<sub>node</sub> &nbsp;·&nbsp;
+            <b>Hub reference:</b> <code>{hub}</code> &nbsp;·&nbsp;
+            <b>CSS</b> = mean(|CI|) per node &nbsp;·&nbsp;
+            Threshold: |CI| &gt; $10/MWh = congested
+        </div>""", unsafe_allow_html=True)
+
+        # Summary metric row
+        high_count = len(result[result["Congestion Risk"]=="🔴 HIGH"])
+        med_count  = len(result[result["Congestion Risk"]=="🟡 MEDIUM"])
+        low_count  = len(result[result["Congestion Risk"]=="🟢 LOW"])
+        avg_css    = result["CSS ($/MWh)"].mean()
+        max_css    = result["CSS ($/MWh)"].max()
+        max_node   = result.loc[result["CSS ($/MWh)"].idxmax(), "Node"] if len(result) else "—"
+
+        cm1,cm2,cm3,cm4,cm5 = st.columns(5)
+        cm1.metric("Nodes Analysed",  len(result))
+        cm2.metric("🔴 High Risk",    high_count)
+        cm3.metric("🟡 Medium Risk",  med_count)
+        cm4.metric("Avg CSS",         f"${avg_css:.2f}/MWh")
+        cm5.metric("Most Congested",  max_node, f"${max_css:.2f} CSS")
+
+        # CSS bar chart
+        fig_css = go.Figure()
+        color_map = {"🔴 HIGH": "#c8102e", "🟡 MEDIUM": "#b8860b", "🟢 LOW": "#1a6a1a"}
+        for risk_label, grp in result.groupby("Congestion Risk"):
+            fig_css.add_trace(go.Bar(
+                x=grp["Node"], y=grp["CSS ($/MWh)"],
+                name=risk_label,
+                marker_color=color_map.get(risk_label, "#6b6b64"),
+                hovertemplate="<b>%{x}</b><br>CSS: $%{y:.2f}/MWh<extra></extra>"))
+        fig_css.update_layout(
+            **neon_plotly_layout("Congestion Severity Score (CSS) by Node", 300),
+            barmode="stack",
+            xaxis=dict(tickangle=-35),
+            yaxis=dict(title="CSS ($/MWh)", tickprefix="$"),
+        )
+        st.plotly_chart(fig_css, use_container_width=True)
+
+        # Congestion % gauge-style bar
+        fig_pct = go.Figure()
+        result_s = result.sort_values("Congestion %", ascending=False)
+        fig_pct.add_trace(go.Bar(
+            x=result_s["Node"], y=result_s["Congestion %"],
+            marker=dict(
+                color=result_s["Congestion %"],
+                colorscale=[[0,"#1a6a1a"],[0.3,"#b8860b"],[1,"#c8102e"]],
+                showscale=True,
+                colorbar=dict(title="%", ticksuffix="%", len=0.6),
+            ),
+            text=result_s["Congestion %"].apply(lambda v: f"{v:.1f}%"),
+            textposition="outside",
+            hovertemplate="<b>%{x}</b><br>Congested: %{y:.1f}% of intervals<extra></extra>"))
+        fig_pct.update_layout(
+            **neon_plotly_layout("Congestion % of Intervals (|CI| > $10/MWh)", 300),
+            xaxis=dict(tickangle=-35),
+            yaxis=dict(title="Congestion %", ticksuffix="%"),
+        )
+        st.plotly_chart(fig_pct, use_container_width=True)
+
+        # Source-side vs Load-side stacked bar
+        if "Source-Side Hours" in result.columns:
+            fig_side = go.Figure()
+            fig_side.add_trace(go.Bar(
+                x=result["Node"], y=result["Source-Side Hours"],
+                name="Source-Side (CI > +10)", marker_color="#c8102e",
+                hovertemplate="%{x}<br>Source-Side: %{y} hrs<extra></extra>"))
+            fig_side.add_trace(go.Bar(
+                x=result["Node"], y=result["Load-Side Hours"],
+                name="Load-Side (CI < −10)",  marker_color="#1a3a7a",
+                hovertemplate="%{x}<br>Load-Side: %{y} hrs<extra></extra>"))
+            fig_side.update_layout(
+                **neon_plotly_layout("Congestion Direction — Source vs Load Side", 280),
+                barmode="group",
+                xaxis=dict(tickangle=-35),
+                yaxis=dict(title="Hours"),
+            )
+            st.plotly_chart(fig_side, use_container_width=True)
+
+        # Congestion Rent proxy
+        if "CR Proxy ($/hr)" in result.columns:
+            st.markdown(f'<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.12em;text-transform:uppercase;margin:10px 0 6px">Congestion Rent Proxy at {batt_mw} MW capacity</div>', unsafe_allow_html=True)
+            fig_cr = go.Figure(go.Bar(
+                x=result["Node"], y=result["CR Proxy ($/hr)"],
+                marker_color=["#c8102e" if v>=0 else "#1a3a7a" for v in result["CR Proxy ($/hr)"]],
+                hovertemplate="%{x}<br>CR Proxy: $%{y:,.0f}/hr<extra></extra>"))
+            fig_cr.update_layout(
+                **neon_plotly_layout("Congestion Rent Proxy ($/hr) = Avg CI × Capacity MW", 240),
+                yaxis=dict(title="$/hr", tickprefix="$"),
+                xaxis=dict(tickangle=-35))
+            st.plotly_chart(fig_cr, use_container_width=True)
+
+        # Full table
+        with st.expander("Full Congestion Table"):
+            st.dataframe(result, use_container_width=True,
+                column_config={
+                    "CSS ($/MWh)":       st.column_config.NumberColumn(format="$%.2f"),
+                    "Avg CI ($/MWh)":    st.column_config.NumberColumn(format="$%.2f"),
+                    "Max |CI| ($/MWh)":  st.column_config.NumberColumn(format="$%.2f"),
+                    "Congestion %":      st.column_config.NumberColumn(format="%.1f%%"),
+                    "CR Proxy ($/hr)":   st.column_config.NumberColumn(format="$%.0f"),
+                })
         st.download_button("↓ Congestion CSV", data=to_csv_bytes(result),
                            file_name="congestion.csv", mime="text/csv", key=f"{key_prefix}_dl_cong")
 
+    # ══════════════════════════════════════════════════════════════
+    # CURTAILMENT — CPI / ECS dashboard
+    # ══════════════════════════════════════════════════════════════
     elif uc_sel == "curtailment" and isinstance(result, pd.DataFrame):
-        for _, row in result.iterrows():
-            rc = {"HIGH":"#c8102e","MED":"#b8860b","LOW":"#1a6a1a"}.get(row.get("Curtailment Risk",""), "#9b9b92")
-            st.markdown(f"""<div style="background:#f7f7f5;border:1px solid {rc};border-left:4px solid {rc};
-                border-radius:2px;padding:12px 16px;margin-bottom:6px;
-                display:flex;justify-content:space-between;align-items:center">
-                <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1a1a18;font-weight:500">{row["Bus"]}</span>
-                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:#3d3d38">Neg: <b style="color:{rc}">{row["Negative Price %"]}%</b></span>
-                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:#3d3d38">Avg: ${row["Avg Price $/MWh"]}/MWh</span>
-                <span style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:{rc}">{row["Curtailment Risk"]}</span>
+        st.markdown("""
+        <div style="background:#f0efec;border-left:4px solid #b8860b;border-radius:2px;
+             padding:10px 16px;margin-bottom:14px;font-family:DM Sans,sans-serif;font-size:13px;color:#3d3d38">
+            <b>CPI</b> = (intervals with LMP ≤ $0) ÷ Total Intervals × 100 &nbsp;·&nbsp;
+            <b>ECS</b> = Economic Curtailment Signal (LMP ≤ 0) &nbsp;·&nbsp;
+            Thresholds: CPI &gt; 20% = 🔴 HIGH, &gt; 5% = 🟡 MEDIUM, ≤ 5% = 🟢 LOW
+        </div>""", unsafe_allow_html=True)
+
+        # Summary row
+        high_c = len(result[result["Curtailment Risk"]=="🔴 HIGH"])
+        med_c  = len(result[result["Curtailment Risk"]=="🟡 MEDIUM"])
+        avg_cpi = result["CPI % (LMP ≤ 0)"].mean()
+        max_cpi = result["CPI % (LMP ≤ 0)"].max()
+        max_bus = result.loc[result["CPI % (LMP ≤ 0)"].idxmax(), "Bus"] if len(result) else "—"
+        total_neg = int(result["≤ $0 Hours"].sum())
+
+        cm1,cm2,cm3,cm4,cm5 = st.columns(5)
+        cm1.metric("Buses Analysed",     len(result))
+        cm2.metric("🔴 High CPI",        high_c)
+        cm3.metric("🟡 Medium CPI",      med_c)
+        cm4.metric("Avg CPI %",          f"{avg_cpi:.1f}%")
+        cm5.metric("Highest CPI",        max_bus, f"{max_cpi:.1f}%")
+
+        # CPI % bar chart — color-coded
+        result_s = result.sort_values("CPI % (LMP ≤ 0)", ascending=False)
+        fig_cpi = go.Figure()
+        risk_colors = {"🔴 HIGH":"#c8102e","🟡 MEDIUM":"#b8860b","🟢 LOW":"#1a6a1a"}
+        for risk_label, grp in result_s.groupby("Curtailment Risk"):
+            fig_cpi.add_trace(go.Bar(
+                x=grp["Bus"], y=grp["CPI % (LMP ≤ 0)"],
+                name=risk_label,
+                marker_color=risk_colors.get(risk_label, "#6b6b64"),
+                text=grp["CPI % (LMP ≤ 0)"].apply(lambda v: f"{v:.1f}%"),
+                textposition="outside",
+                hovertemplate="<b>%{x}</b><br>CPI: %{y:.2f}%<extra></extra>"))
+        # Add 20% and 5% threshold lines
+        fig_cpi.add_hline(y=20, line_dash="dot", line_color="#c8102e", line_width=1,
+                          annotation_text="HIGH threshold 20%",
+                          annotation_font=dict(color="#c8102e", size=9, family="DM Mono"))
+        fig_cpi.add_hline(y=5,  line_dash="dot", line_color="#b8860b", line_width=1,
+                          annotation_text="MEDIUM threshold 5%",
+                          annotation_font=dict(color="#b8860b", size=9, family="DM Mono"))
+        fig_cpi.update_layout(
+            **neon_plotly_layout("Curtailment Probability Index (CPI %) by Bus", 320),
+            barmode="stack",
+            xaxis=dict(tickangle=-35),
+            yaxis=dict(title="CPI %", ticksuffix="%"),
+        )
+        st.plotly_chart(fig_cpi, use_container_width=True)
+
+        # Curtailment hours breakdown: ≤$0 vs <-$20
+        fig_hrs = go.Figure()
+        fig_hrs.add_trace(go.Bar(
+            x=result_s["Bus"], y=result_s["≤ $0 Hours"],
+            name="≤ $0/MWh (ECS = 1)", marker_color="#b8860b",
+            hovertemplate="%{x}<br>≤$0 hrs: %{y}<extra></extra>"))
+        fig_hrs.add_trace(go.Bar(
+            x=result_s["Bus"], y=result_s["< −$20 Hours"],
+            name="< −$20/MWh (deep neg)", marker_color="#c8102e",
+            hovertemplate="%{x}<br><−$20 hrs: %{y}<extra></extra>"))
+        fig_hrs.update_layout(
+            **neon_plotly_layout("Curtailment Hours — ECS Events by Severity", 280),
+            barmode="overlay",
+            xaxis=dict(tickangle=-35),
+            yaxis=dict(title="Hours"),
+        )
+        st.plotly_chart(fig_hrs, use_container_width=True)
+
+        # Risk cards per bus
+        st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.12em;text-transform:uppercase;margin:10px 0 8px">Node Risk Summary</div>', unsafe_allow_html=True)
+        for _, row in result_s.iterrows():
+            rc = {"🔴 HIGH":"#c8102e","🟡 MEDIUM":"#b8860b","🟢 LOW":"#1a6a1a"}.get(row["Curtailment Risk"], "#9b9b92")
+            st.markdown(f"""
+            <div style="background:#f7f7f5;border:1px solid {rc};border-left:4px solid {rc};
+                 border-radius:2px;padding:11px 16px;margin-bottom:5px;
+                 display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;align-items:center;gap:8px">
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1a1a18;font-weight:600">{row["Bus"]}</span>
+                <span style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92">CPI %</div>
+                    <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:{rc}">{row["CPI % (LMP ≤ 0)"]:.1f}%</div></span>
+                <span style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92">ECS Events</div>
+                    <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#3d3d38">{row["ECS Events"]}</div></span>
+                <span style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92">≤$0 Hrs</div>
+                    <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#3d3d38">{row["≤ $0 Hours"]}</div></span>
+                <span style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92">Avg LMP</div>
+                    <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#3d3d38">${row["Avg LMP ($/MWh)"]:.2f}</div></span>
+                <span style="text-align:right"><span style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:{rc}">{row["Curtailment Risk"]}</span></span>
             </div>""", unsafe_allow_html=True)
+
+        with st.expander("Full Curtailment Table"):
+            st.dataframe(result_s, use_container_width=True,
+                column_config={
+                    "CPI % (LMP ≤ 0)":  st.column_config.NumberColumn(format="%.2f%%"),
+                    "Avg LMP ($/MWh)":   st.column_config.NumberColumn(format="$%.2f"),
+                    "Min LMP ($/MWh)":   st.column_config.NumberColumn(format="$%.2f"),
+                    "Avg Curtailed LMP": st.column_config.NumberColumn(format="$%.2f"),
+                })
         st.download_button("↓ Curtailment CSV", data=to_csv_bytes(result),
                            file_name="curtailment.csv", mime="text/csv", key=f"{key_prefix}_dl_curt")
 
