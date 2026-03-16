@@ -1544,7 +1544,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 
         # Congestion Rent proxy
         if "CR Proxy ($/hr)" in result.columns:
-            st.markdown(f'<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.12em;text-transform:uppercase;margin:10px 0 6px">Congestion Rent Proxy at {batt_mw} MW capacity</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.12em;text-transform:uppercase;margin:10px 0 6px">Congestion Rent Proxy (100 MW capacity)</div>', unsafe_allow_html=True)
             fig_cr = go.Figure(go.Bar(
                 x=result["Node"], y=result["CR Proxy ($/hr)"],
                 marker_color=["#c8102e" if v>=0 else "#1a3a7a" for v in result["CR Proxy ($/hr)"]],
