@@ -1194,20 +1194,40 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     else:
         st.info("ℹ️  Low Spread — focus on Capacity / Ancillary markets")
 
-    # ── Overlay selector ─────────────────────────────────────────
+    # ── Overlay controls ─────────────────────────────────────────
     st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin:12px 0 8px;font-weight:500">Chart Overlays</div>', unsafe_allow_html=True)
-    ov1,ov2,ov3,ov4,ov5,ov6,ov7 = st.columns(7)
-    ov_ma3    = ov1.checkbox("MA3",          value=True,  key=f"{key_prefix}_ov_ma3")
-    ov_2h     = ov2.checkbox("2H Storage",   value=True,  key=f"{key_prefix}_ov_2h")
-    ov_4h     = ov3.checkbox("4H Storage",   value=True,  key=f"{key_prefix}_ov_4h")
-    ov_avg    = ov4.checkbox("Avg Line",     value=True,  key=f"{key_prefix}_ov_avg")
-    ov_neg    = ov5.checkbox("Neg. Prices",  value=False, key=f"{key_prefix}_ov_neg")
-    ov_spread = ov6.checkbox("Spread Band",  value=False, key=f"{key_prefix}_ov_spread")
-    ov_multi  = ov7.checkbox("All Buses",    value=False, key=f"{key_prefix}_ov_multi")
+    ov1, ov2, ov3, ov4, ov5, ov6 = st.columns([2, 2, 1, 1, 1, 1])
 
-    # ── Compute BESS strategy (rolling-avg, exact BESS Dashboard method) ─
-    rev2, roll2, low2, high2, cw2, dw2 = bess_calc(hourly, half_w=1)
-    rev4, roll4, low4, high4, cw4, dw4 = bess_calc(hourly, half_w=2)
+    # BESS strategy selector — defaults to None (not shown until selected)
+    with ov1:
+        bess_strategy = st.selectbox(
+            "BESS Storage Strategy",
+            ["None", "2H Storage (±1 hr)", "4H Storage (±2 hr)", "Both (2H + 4H)"],
+            index=0,
+            key=f"{key_prefix}_bess_strategy",
+            label_visibility="visible"
+        )
+    ov_2h = bess_strategy in ("2H Storage (±1 hr)", "Both (2H + 4H)")
+    ov_4h = bess_strategy in ("4H Storage (±2 hr)", "Both (2H + 4H)")
+
+    with ov2:
+        ov_ma3    = st.checkbox("MA3 Line",    value=True,  key=f"{key_prefix}_ov_ma3")
+        ov_avg    = st.checkbox("Avg Line",    value=True,  key=f"{key_prefix}_ov_avg")
+    with ov3:
+        ov_neg    = st.checkbox("Neg. Prices", value=False, key=f"{key_prefix}_ov_neg")
+    with ov4:
+        ov_spread = st.checkbox("Spread Band", value=False, key=f"{key_prefix}_ov_spread")
+    with ov5:
+        ov_multi  = st.checkbox("All Buses",   value=False, key=f"{key_prefix}_ov_multi")
+
+    # ── Only compute BESS strategy when selected ──────────────────
+    if ov_2h or ov_4h:
+        rev2, roll2, low2, high2, cw2, dw2 = bess_calc(hourly, half_w=1)
+        rev4, roll4, low4, high4, cw4, dw4 = bess_calc(hourly, half_w=2)
+    else:
+        rev2 = rev4 = low2 = high2 = low4 = high4 = 0
+        roll2 = roll4 = hourly["price"]
+        cw2 = cw4 = dw2 = dw4 = (0, 0)
 
     # ── BUILD CHART ───────────────────────────────────────────────
     PALETTE = ["#c8102e","#1a3a7a","#b8860b","#1a6a1a","#7a1a5a","#5a3a1a","#1a5a7a"]
