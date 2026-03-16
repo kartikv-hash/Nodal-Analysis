@@ -1177,6 +1177,75 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 
 
 
+# ═══════════════════════════════════════════════════════════════════
+# Sidebar
+# ═══════════════════════════════════════════════════════════════════
+with st.sidebar:
+    st.markdown(f"""
+    <div style="padding:24px 20px 20px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.4);
+             letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px">Energy Intelligence</div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;
+             color:#fff;line-height:1.2;letter-spacing:-0.02em">SunStripe</div>
+        <div style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:300;
+             color:rgba(255,255,255,0.5);margin-top:2px;letter-spacing:.04em">ERCOT Nodal Intelligence</div>
+        <div style="margin-top:14px;height:1px;background:rgba(200,16,46,0.6)"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    page = st.radio("", [
+        "🗺️ Infrastructure Map",
+        "⚡ Node & Hub Selector",
+        "🔍 Bus Lookup",
+        "🏭 Substation Lookup",
+        "📋 Browse All",
+    ], label_visibility="collapsed")
+
+    st.markdown(f"""
+    <div style="padding:20px 20px 0;margin-top:8px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.3);
+             letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;
+             padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08)">Dataset · Feb 2026</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:rgba(255,255,255,0.45)">Settlement Points</span>
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff">{len(df):,}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:rgba(255,255,255,0.45)">Substations</span>
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff">{df["Substation"].nunique():,}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:rgba(255,255,255,0.45)">Hubs</span>
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#c8102e">{df[df["Hub"]!=""]["Hub"].nunique()}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:rgba(255,255,255,0.45)">Resource Nodes</span>
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff">{df[df["Resource Node"]!=""].shape[0]:,}</span>
+            </div>
+        </div>
+        <div style="margin-top:20px;height:1px;background:rgba(255,255,255,0.08)"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="padding:16px 20px 24px">
+    <a href="https://ercot-bess-dashboard-nhh9eztsqeuqxxuz97kacu.streamlit.app/" target="_blank"
+       style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;
+              background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+              border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;
+              color:rgba(255,255,255,0.6);text-decoration:none;margin-bottom:6px">
+        <span>ERCOT BESS Dashboard</span><span style="opacity:.4">↗</span></a>
+    <a href="https://fatal-flaw-o7aks4agtoffgyydbvrguj.streamlit.app/" target="_blank"
+       style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;
+              background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+              border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;
+              color:rgba(255,255,255,0.6);text-decoration:none">
+        <span>SiteIQ Fatal Flaw</span><span style="opacity:.4">↗</span></a>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 if page == "🗺️ Infrastructure Map":
 
     st.markdown(f"""<div class="page-header">
