@@ -17,7 +17,7 @@ from fpdf import FPDF
 # Page config
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="ERCOT Nodal Analysis",
+    page_title="SunStripe · ERCOT Nodal Intelligence",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -28,145 +28,379 @@ st.set_page_config(
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+/* ═══════════════════════════════════════════════
+   SUNSTRIPE — Professional White/Red Theme
+   Playfair Display (display) · DM Sans (body) · DM Mono (data)
+   ═══════════════════════════════════════════════ */
 
 :root {
-  --void:  #030712;
-  --surf:  #060d1a;
-  --panel: #091424;
-  --grid:  #0a1f35;
-  --ng:    #00ff9d;
-  --nb:    #00c8ff;
-  --np:    #bf00ff;
-  --no:    #ff6b00;
-  --nr:    #ff2d55;
-  --text:  #c8e6ff;
-  --dim:   #3a6080;
-  --faint: #1a3050;
+  --bg:        #ffffff;
+  --bg2:       #f7f7f5;
+  --bg3:       #f0efec;
+  --border:    #e2e0db;
+  --border2:   #d0cdc6;
+  --red:       #c8102e;
+  --red-light: #f5e6e9;
+  --red-mid:   #e8b4bc;
+  --red-dark:  #8b0b1f;
+  --ink:       #1a1a18;
+  --ink2:      #3d3d38;
+  --ink3:      #6b6b64;
+  --ink4:      #9b9b92;
+  --gold:      #b8860b;
+  --gold-lt:   #f5f0e0;
 }
 
-html, body, [data-testid="stAppViewContainer"] {
-    background-color: var(--void) !important;
-    font-family: 'Exo 2', sans-serif;
-    color: var(--text);
-    background-image: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,200,255,0.015) 2px,rgba(0,200,255,0.015) 4px) !important;
+/* ── Reset & Base ─────────────────────────────── */
+html, body,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
+    background-color: var(--bg) !important;
+    color: var(--ink) !important;
+    font-family: 'DM Sans', sans-serif !important;
 }
-[data-testid="stAppViewContainer"]::before {
-    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-    background-image: radial-gradient(circle, rgba(0,200,255,0.07) 1px, transparent 1px);
-    background-size: 28px 28px;
+[data-testid="stAppViewContainer"] {
+    background-image:
+        linear-gradient(90deg, rgba(200,16,46,0.025) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(200,16,46,0.025) 1px, transparent 1px) !important;
+    background-size: 48px 48px !important;
 }
+
+/* ── Sidebar ──────────────────────────────────── */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #04090f 0%, #030712 100%) !important;
-    border-right: 1px solid var(--ng) !important;
-    box-shadow: 4px 0 30px rgba(0,255,157,0.08) !important;
+    background: var(--ink) !important;
+    border-right: 3px solid var(--red) !important;
+    box-shadow: 4px 0 32px rgba(200,16,46,0.12) !important;
 }
-[data-testid="stSidebar"] * { color: var(--text) !important; }
-[data-testid="stSidebar"] hr { border-color: var(--faint) !important; }
-
-.page-header { border-bottom: 1px solid var(--ng); padding-bottom:14px; margin-bottom:20px; position:relative; }
-.page-header::after { content:''; position:absolute; bottom:-1px; left:0; width:80px; height:2px; background:linear-gradient(90deg,var(--ng),transparent); box-shadow:0 0 8px var(--ng); }
-.page-header .tag { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--ng); letter-spacing:.3em; text-transform:uppercase; margin-bottom:6px; text-shadow:0 0 8px var(--ng); }
-.page-header h1 { font-family:'Orbitron',monospace; font-size:22px; font-weight:700; color:var(--text); margin:0; text-transform:uppercase; letter-spacing:.08em; }
-.page-header h1 span { color:var(--ng); text-shadow:0 0 12px var(--ng),0 0 24px rgba(0,255,157,0.4); animation:flicker 8s infinite; }
-
-.section-label { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--ng); letter-spacing:.25em; text-transform:uppercase; margin:20px 0 10px; display:flex; align-items:center; gap:10px; text-shadow:0 0 6px var(--ng); }
-.section-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,rgba(0,255,157,0.4),transparent); }
-
-.step-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:transparent; border:1px solid var(--ng); color:var(--ng); font-family:'Orbitron',monospace; font-size:10px; font-weight:700; box-shadow:0 0 8px rgba(0,255,157,0.5),inset 0 0 8px rgba(0,255,157,0.1); text-shadow:0 0 6px var(--ng); }
-
-.osm-card { background:linear-gradient(135deg,rgba(0,200,255,0.04),rgba(0,255,157,0.02)); border:1px solid rgba(0,200,255,0.3); border-left:3px solid var(--nb); border-radius:4px; padding:16px 20px; margin-bottom:14px; box-shadow:0 0 20px rgba(0,200,255,0.06),inset 0 0 30px rgba(0,200,255,0.02); position:relative; overflow:hidden; }
-.osm-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--nb),transparent); opacity:.6; }
-.osm-card .oc-title { font-family:'Orbitron',monospace; font-size:13px; font-weight:600; color:var(--nb); margin-bottom:12px; text-transform:uppercase; letter-spacing:.05em; text-shadow:0 0 10px var(--nb); }
-.osm-card .oc-grid { display:flex; flex-wrap:wrap; gap:16px; margin-bottom:10px; }
-.osm-card .oc-item .oc-lbl { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--dim); letter-spacing:.2em; text-transform:uppercase; }
-.osm-card .oc-item .oc-val { font-family:'Share Tech Mono',monospace; font-size:12px; font-weight:500; color:var(--text); margin-top:2px; }
-
-.ercot-card { background:linear-gradient(135deg,rgba(191,0,255,0.04),rgba(0,255,157,0.02)); border:1px solid rgba(0,255,157,0.25); border-left:3px solid var(--ng); border-radius:4px; padding:16px 20px; margin-bottom:14px; box-shadow:0 0 20px rgba(0,255,157,0.06),inset 0 0 30px rgba(0,255,157,0.02); position:relative; overflow:hidden; }
-.ercot-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--ng),transparent); opacity:.5; }
-.ercot-card h3 { font-family:'Orbitron',monospace; font-size:13px; font-weight:600; color:var(--ng); margin:0 0 12px; text-transform:uppercase; letter-spacing:.05em; text-shadow:0 0 10px var(--ng); }
-.dg { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:10px; }
-.di .dl { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--dim); letter-spacing:.2em; text-transform:uppercase; }
-.di .dv { font-family:'Share Tech Mono',monospace; font-size:12px; font-weight:500; color:var(--text); margin-top:2px; }
-
-.use-case-card { background:var(--surf); border:1px solid var(--faint); border-radius:4px; padding:14px 18px; margin-bottom:8px; cursor:pointer; transition:all .2s; }
-.use-case-card:hover,.use-case-card.active { border-color:var(--ng); background:rgba(0,255,157,0.04); box-shadow:0 0 16px rgba(0,255,157,0.1); }
-.use-case-card .uc-title { font-family:'Orbitron',monospace; font-size:12px; font-weight:600; color:var(--ng); margin-bottom:4px; text-transform:uppercase; letter-spacing:.05em; }
-.use-case-card .uc-desc { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dim); line-height:1.5; }
-.use-case-card .uc-who { font-size:10px; color:var(--nb); font-family:'Share Tech Mono',monospace; margin-top:4px; }
-
-.tag-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
-.tag-bus  { display:inline-block; padding:2px 10px; border-radius:2px; font-family:'Share Tech Mono',monospace; font-size:10px; font-weight:500; background:rgba(0,255,157,0.07); border:1px solid rgba(0,255,157,0.35); color:var(--ng); text-shadow:0 0 6px rgba(0,255,157,0.5); }
-.tag-zone { display:inline-block; padding:2px 10px; border-radius:2px; font-family:'Share Tech Mono',monospace; font-size:10px; background:rgba(0,200,255,0.07); border:1px solid rgba(0,200,255,0.35); color:var(--nb); text-shadow:0 0 6px rgba(0,200,255,0.5); }
-.tag-psse { display:inline-block; padding:2px 10px; border-radius:2px; font-family:'Share Tech Mono',monospace; font-size:10px; background:rgba(191,0,255,0.07); border:1px solid rgba(191,0,255,0.35); color:#d966ff; text-shadow:0 0 6px rgba(191,0,255,0.5); }
-.tag-hub  { display:inline-block; padding:2px 10px; border-radius:2px; font-family:'Share Tech Mono',monospace; font-size:10px; background:rgba(255,107,0,0.07); border:1px solid rgba(255,107,0,0.35); color:var(--no); text-shadow:0 0 6px rgba(255,107,0,0.5); }
-.tag-rn   { display:inline-block; padding:2px 10px; border-radius:2px; font-family:'Share Tech Mono',monospace; font-size:10px; background:rgba(0,255,157,0.05); border:1px solid rgba(0,255,157,0.2); color:var(--ng); }
-
-.kv { display:inline-block; padding:2px 10px; border-radius:2px; font-family:'Share Tech Mono',monospace; font-size:11px; font-weight:600; }
-.kv-345 { color:var(--no); background:rgba(255,107,0,0.1); border:1px solid rgba(255,107,0,0.4); text-shadow:0 0 6px var(--no); }
-.kv-230 { color:#ffd700; background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.35); text-shadow:0 0 6px #ffd700; }
-.kv-138 { color:var(--ng); background:rgba(0,255,157,0.08); border:1px solid rgba(0,255,157,0.35); text-shadow:0 0 6px var(--ng); }
-.kv-115 { color:#d966ff; background:rgba(191,0,255,0.08); border:1px solid rgba(191,0,255,0.35); text-shadow:0 0 6px #d966ff; }
-.kv-69  { color:var(--nb); background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.35); text-shadow:0 0 6px var(--nb); }
-.kv-34  { color:var(--dim); background:rgba(58,96,128,0.1); border:1px solid rgba(58,96,128,0.3); }
-
-.map-placeholder { text-align:center; padding:48px 20px; color:var(--dim); font-family:'Share Tech Mono',monospace; background:var(--surf); border:1px solid var(--faint); border-radius:4px; }
-.map-placeholder .mp-icon { font-size:36px; margin-bottom:12px; filter:drop-shadow(0 0 8px var(--ng)); }
-.map-placeholder .mp-title { font-size:13px; font-weight:600; color:var(--faint); margin-bottom:6px; font-family:'Orbitron',monospace; text-transform:uppercase; letter-spacing:.1em; }
-.map-placeholder .mp-sub { font-size:11px; line-height:1.8; color:var(--dim); }
-
-.hint-bar { background:rgba(0,200,255,0.04); border:1px solid rgba(0,200,255,0.2); border-radius:4px; padding:8px 16px; font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--dim); margin-bottom:12px; display:flex; align-items:center; gap:10px; }
-.conf-high { color:var(--ng); font-weight:600; text-shadow:0 0 6px var(--ng); }
-.conf-med  { color:#ffd700; font-weight:600; text-shadow:0 0 6px #ffd700; }
-.conf-low  { color:var(--nr); font-weight:600; text-shadow:0 0 6px var(--nr); }
-
-.stTabs [data-baseweb="tab-list"] { background:var(--surf) !important; border-bottom:1px solid rgba(0,255,157,0.2) !important; }
-.stTabs [data-baseweb="tab"] { font-family:'Share Tech Mono',monospace !important; font-size:11px !important; font-weight:500 !important; letter-spacing:.15em !important; text-transform:uppercase !important; color:var(--dim) !important; background:transparent !important; padding:10px 20px !important; }
-.stTabs [aria-selected="true"] { color:var(--ng) !important; border-bottom:2px solid var(--ng) !important; text-shadow:0 0 8px var(--ng) !important; background:rgba(0,255,157,0.04) !important; }
-
-.stTextInput input, div[data-baseweb="select"] > div, .stNumberInput input {
-    background-color:var(--panel) !important; border:1px solid rgba(0,200,255,0.25) !important;
-    color:var(--text) !important; font-family:'Share Tech Mono',monospace !important; border-radius:3px !important;
+[data-testid="stSidebar"] * { color: rgba(255,255,255,0.85) !important; }
+[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.1) !important; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.01em !important;
+    padding: 6px 0 !important;
+    color: rgba(255,255,255,0.7) !important;
+    transition: color 0.15s !important;
 }
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+    color: #fff !important;
+}
+[data-testid="stSidebar"] [aria-checked="true"] + div label,
+[data-testid="stSidebar"] [data-baseweb="radio"] [aria-checked="true"] ~ * {
+    color: #fff !important;
+}
+
+/* ── Page headers ─────────────────────────────── */
+.page-header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 28px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+.page-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0;
+    width: 60px; height: 2px;
+    background: var(--red);
+}
+.page-header .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--red);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+.page-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+.page-header h1 span { color: var(--red); }
+.page-header .ph-right {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--ink4);
+    text-align: right;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+/* ── Section labels ───────────────────────────── */
+.section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--ink3);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+}
+.section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.step-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--red); color: #fff;
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+}
+
+/* ── Cards ────────────────────────────────────── */
+.osm-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--red);
+    border-radius: 2px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    position: relative;
+}
+.osm-card .oc-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+}
+.osm-card .oc-grid { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 10px; }
+.osm-card .oc-item .oc-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; color: var(--ink4);
+    letter-spacing: .14em; text-transform: uppercase;
+}
+.osm-card .oc-item .oc-val {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; color: var(--ink2); margin-top: 3px;
+}
+
+.ercot-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--ink);
+    border-radius: 2px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.ercot-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; font-weight: 600;
+    color: var(--ink); margin: 0 0 14px;
+    letter-spacing: -0.01em;
+}
+.dg { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
+.di .dl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; color: var(--ink4);
+    letter-spacing: .14em; text-transform: uppercase;
+}
+.di .dv {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; color: var(--ink2); margin-top: 3px;
+}
+
+/* ── Tags / Pills ─────────────────────────────── */
+.tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.tag-bus  { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:10px; font-weight:500; background: var(--red-light); border:1px solid var(--red-mid); color: var(--red-dark); }
+.tag-zone { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:10px; background: #e8f0fe; border:1px solid #a8c0f0; color: #1a3a7a; }
+.tag-psse { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:10px; background: var(--bg3); border:1px solid var(--border2); color: var(--ink2); }
+.tag-hub  { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:10px; background: var(--gold-lt); border:1px solid #d4a820; color: var(--gold); font-weight:600; }
+.tag-rn   { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:10px; background: var(--bg3); border:1px solid var(--border); color: var(--ink3); }
+
+/* ── kV badges ────────────────────────────────── */
+.kv { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:11px; font-weight:600; }
+.kv-345 { color: var(--red-dark); background: var(--red-light); border:1px solid var(--red-mid); }
+.kv-230 { color: #7a5a00; background: var(--gold-lt); border:1px solid #d4a820; }
+.kv-138 { color: #1a4a1a; background: #e8f5e8; border:1px solid #90c890; }
+.kv-115 { color: #1a3a7a; background: #e8f0fe; border:1px solid #a8c0f0; }
+.kv-69  { color: var(--ink2); background: var(--bg3); border:1px solid var(--border2); }
+.kv-34  { color: var(--ink4); background: var(--bg3); border:1px solid var(--border); }
+
+/* ── Map placeholder ──────────────────────────── */
+.map-placeholder {
+    text-align: center; padding: 60px 20px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 2px;
+}
+.map-placeholder .mp-icon { font-size: 32px; margin-bottom: 14px; opacity: 0.5; }
+.map-placeholder .mp-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; font-weight: 600; color: var(--ink2);
+    margin-bottom: 8px;
+}
+.map-placeholder .mp-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; line-height: 1.7; color: var(--ink4);
+}
+
+/* ── Confidence labels ────────────────────────── */
+.conf-high { color: #1a6a1a; font-weight: 600; }
+.conf-med  { color: var(--gold); font-weight: 600; }
+.conf-low  { color: var(--red); font-weight: 600; }
+
+/* ── Streamlit tabs ───────────────────────────── */
+.stTabs [data-baseweb="tab-list"] {
+    background: var(--bg) !important;
+    border-bottom: 2px solid var(--border) !important;
+    gap: 0 !important;
+}
+.stTabs [data-baseweb="tab"] {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0 !important;
+    color: var(--ink3) !important;
+    background: transparent !important;
+    padding: 10px 22px !important;
+    border-bottom: 2px solid transparent !important;
+    margin-bottom: -2px !important;
+}
+.stTabs [aria-selected="true"] {
+    color: var(--red) !important;
+    border-bottom: 2px solid var(--red) !important;
+    font-weight: 600 !important;
+}
+
+/* ── Inputs & selects ─────────────────────────── */
+.stTextInput input,
+div[data-baseweb="select"] > div,
+.stNumberInput input {
+    background-color: var(--bg) !important;
+    border: 1px solid var(--border2) !important;
+    color: var(--ink) !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    border-radius: 2px !important;
+    box-shadow: none !important;
+}
+.stTextInput input:focus,
+div[data-baseweb="select"] > div:focus-within {
+    border-color: var(--red) !important;
+    box-shadow: 0 0 0 3px rgba(200,16,46,0.08) !important;
+}
+
+/* ── Buttons ──────────────────────────────────── */
 .stDownloadButton button, .stButton button {
-    background:var(--panel) !important; border:1px solid rgba(0,200,255,0.3) !important;
-    color:var(--nb) !important; font-family:'Share Tech Mono',monospace !important;
-    font-size:11px !important; font-weight:500 !important; letter-spacing:.12em !important;
-    text-transform:uppercase !important; border-radius:3px !important;
+    background: var(--bg) !important;
+    border: 1px solid var(--border2) !important;
+    color: var(--ink2) !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    border-radius: 2px !important;
+    transition: all 0.15s !important;
 }
 .stDownloadButton button:hover, .stButton button:hover {
-    border-color:var(--ng) !important; color:var(--ng) !important;
-    background:rgba(0,255,157,0.06) !important; box-shadow:0 0 12px rgba(0,255,157,0.2) !important;
+    border-color: var(--red) !important;
+    color: var(--red) !important;
+    background: var(--red-light) !important;
+    box-shadow: none !important;
 }
 button[kind="primary"] {
-    background:linear-gradient(135deg,rgba(0,255,157,0.15),rgba(0,200,255,0.1)) !important;
-    border:1px solid var(--ng) !important; color:var(--ng) !important; font-weight:600 !important;
-    box-shadow:0 0 16px rgba(0,255,157,0.25),inset 0 0 16px rgba(0,255,157,0.05) !important;
-    text-shadow:0 0 8px var(--ng) !important;
+    background: var(--red) !important;
+    border: 1px solid var(--red) !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(200,16,46,0.25) !important;
+    text-shadow: none !important;
 }
 button[kind="primary"]:hover {
-    background:linear-gradient(135deg,rgba(0,255,157,0.25),rgba(0,200,255,0.15)) !important;
-    box-shadow:0 0 24px rgba(0,255,157,0.4),inset 0 0 20px rgba(0,255,157,0.08) !important;
+    background: var(--red-dark) !important;
+    border-color: var(--red-dark) !important;
+    box-shadow: 0 4px 16px rgba(200,16,46,0.35) !important;
 }
 
-[data-testid="stMetric"] { background:linear-gradient(135deg,var(--surf),var(--panel)); border:1px solid rgba(0,255,157,0.15); border-radius:4px; padding:14px 18px; position:relative; overflow:hidden; animation:pulse-glow 4s ease-in-out infinite; }
-[data-testid="stMetric"]::after { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(0,255,157,0.4),transparent); }
-[data-testid="stMetricLabel"] { font-family:'Share Tech Mono',monospace !important; font-size:9px !important; color:var(--dim) !important; text-transform:uppercase !important; letter-spacing:.2em !important; }
-[data-testid="stMetricValue"] { font-family:'Orbitron',monospace !important; color:var(--ng) !important; font-size:22px !important; font-weight:700 !important; text-shadow:0 0 12px var(--ng) !important; }
+/* ── Metrics ──────────────────────────────────── */
+[data-testid="stMetric"] {
+    background: var(--bg2) !important;
+    border: 1px solid var(--border) !important;
+    border-top: 3px solid var(--red) !important;
+    border-radius: 2px !important;
+    padding: 16px 18px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    animation: none !important;
+}
+[data-testid="stMetric"]::after { display: none !important; }
+[data-testid="stMetricLabel"] {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 10px !important;
+    color: var(--ink4) !important;
+    text-transform: uppercase !important;
+    letter-spacing: .12em !important;
+    font-weight: 500 !important;
+}
+[data-testid="stMetricValue"] {
+    font-family: 'Playfair Display', serif !important;
+    color: var(--ink) !important;
+    font-size: 26px !important;
+    font-weight: 700 !important;
+    text-shadow: none !important;
+    letter-spacing: -0.02em !important;
+}
+[data-testid="stMetricDelta"] {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+}
 
-[data-testid="stCheckbox"] label { font-family:'Share Tech Mono',monospace !important; font-size:11px !important; letter-spacing:.05em !important; }
-[data-testid="stDataFrame"] { border:1px solid rgba(0,200,255,0.15) !important; border-radius:4px !important; }
+/* ── Checkboxes ───────────────────────────────── */
+[data-testid="stCheckbox"] label {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: var(--ink2) !important;
+    letter-spacing: 0 !important;
+}
 
-div[data-testid="stMarkdownContainer"] p { color:var(--dim); font-size:13px; }
-hr { border-color:var(--faint) !important; }
+/* ── DataFrames ───────────────────────────────── */
+[data-testid="stDataFrame"] {
+    border: 1px solid var(--border) !important;
+    border-radius: 2px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+}
 
-::-webkit-scrollbar { width:5px; height:5px; }
-::-webkit-scrollbar-track { background:var(--void); }
-::-webkit-scrollbar-thumb { background:rgba(0,255,157,0.2); border-radius:2px; }
-::-webkit-scrollbar-thumb:hover { background:var(--ng); box-shadow:0 0 6px var(--ng); }
+/* ── Alerts ───────────────────────────────────── */
+[data-testid="stAlert"] {
+    border-radius: 2px !important;
+    border-left-width: 4px !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
 
-@keyframes flicker { 0%,95%,100%{opacity:1} 96%{opacity:.85} 97%{opacity:1} 98%{opacity:.9} }
-@keyframes pulse-glow { 0%,100%{box-shadow:0 0 16px rgba(0,255,157,0.04)} 50%{box-shadow:0 0 24px rgba(0,255,157,0.10)} }
+/* ── Misc ─────────────────────────────────────── */
+div[data-testid="stMarkdownContainer"] p {
+    color: var(--ink2);
+    font-size: 14px;
+    line-height: 1.6;
+    font-family: 'DM Sans', sans-serif;
+}
+hr { border-color: var(--border) !important; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--red); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -220,13 +454,13 @@ def haversine(lat1, lon1, lat2, lon2):
 
 def neon_plotly_layout(title="", height=320):
     return dict(
-        title=dict(text=title, font=dict(family="Orbitron", size=13, color="#00ff9d"), x=0.01),
+        title=dict(text=title, font=dict(family="Playfair Display", size=14, color="#1a1a18"), x=0.01),
         height=height,
-        paper_bgcolor="#030712", plot_bgcolor="#060d1a",
-        font=dict(family="Share Tech Mono", color="#c8e6ff", size=11),
-        xaxis=dict(gridcolor="#0a1f35", linecolor="#1a3050", tickfont=dict(size=10)),
-        yaxis=dict(gridcolor="#0a1f35", linecolor="#1a3050", tickfont=dict(size=10)),
-        legend=dict(bgcolor="rgba(6,13,26,0.8)", bordercolor="#1a3050", borderwidth=1),
+        paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+        font=dict(family="DM Sans", color="#3d3d38", size=11),
+        xaxis=dict(gridcolor="#e2e0db", linecolor="#d0cdc6", tickfont=dict(size=10, color="#6b6b64")),
+        yaxis=dict(gridcolor="#e2e0db", linecolor="#d0cdc6", tickfont=dict(size=10, color="#6b6b64")),
+        legend=dict(bgcolor="rgba(247,247,245,0.95)", bordercolor="#e2e0db", borderwidth=1),
         margin=dict(l=50, r=20, t=40, b=40),
     )
 
@@ -747,7 +981,7 @@ def render_ercot_card(sub_name, sub_df):
 
 def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_sub=None):
     """LMP Analysis Engine — upload auto-plots, use-cases layer as toggles."""
-    st.markdown('<div class="section-label">⚡ LMP ANALYSIS ENGINE</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">LMP Analysis Engine</div>', unsafe_allow_html=True)
 
     lmp_key  = f"{key_prefix}_lmpdf"
     bus_key  = f"{key_prefix}_selbus"
@@ -760,7 +994,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     up_col, api_col = st.columns([3, 2])
 
     with up_col:
-        st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px">// UPLOAD LMP FILE</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px;font-weight:500">Upload LMP File</div>', unsafe_allow_html=True)
         up = st.file_uploader("LMP file", type=["csv","zip"],
                               key=f"{key_prefix}_uploader", label_visibility="collapsed")
         if up:
@@ -782,7 +1016,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                     st.success(f"✓ {len(ldf):,} rows · {files} file(s)")
 
     with api_col:
-        st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px">// LIVE ERCOT API</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px;font-weight:500">Live ERCOT API</div>', unsafe_allow_html=True)
         buses_available = resolved_df["Bus"].tolist()
         a1, a2 = st.columns([2, 1])
         with a1:
@@ -941,7 +1175,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     sm4.metric("~ VOLATILITY", f"{vol:.1f}", vol_lbl)
 
     # ── ROW 5: Use-case overlay toggles ──────────────────────────
-    st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;letter-spacing:.2em;text-transform:uppercase;margin:10px 0 6px">// ADD OVERLAYS TO CHART</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin:10px 0 6px;font-weight:500">Add Overlays</div>', unsafe_allow_html=True)
 
     ov_cols = st.columns(6)
     ov_ma3      = ov_cols[0].checkbox("MA3 Line",       value=True,  key=f"{key_prefix}_ov_ma3")
@@ -967,10 +1201,10 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         interval_td = pd.Timedelta(resample_opt) / 2
         for _, row in charge_df.iterrows():
             fig.add_vrect(x0=row["datetime"]-interval_td, x1=row["datetime"]+interval_td,
-                          fillcolor="rgba(0,255,157,0.09)", layer="below", line_width=0)
+                          fillcolor="rgba(26,106,26,0.07)", layer="below", line_width=0)
         for _, row in discharge_df.iterrows():
             fig.add_vrect(x0=row["datetime"]-interval_td, x1=row["datetime"]+interval_td,
-                          fillcolor="rgba(255,45,85,0.09)", layer="below", line_width=0)
+                          fillcolor="rgba(200,16,46,0.07)", layer="below", line_width=0)
 
     # Negative price shading
     if ov_neg:
@@ -989,7 +1223,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 
     # Multi-bus traces (dimmed)
     if ov_multi:
-        colors_multi = ["#00c8ff","#ff6b00","#d966ff","#ffd700","#ff2d55"]
+        colors_multi = ["#1a3a7a","#b8860b","#6b1a1a","#1a6a1a","#7a1a5a"]
         for idx, other_bus in enumerate([b for b in bus_list if b != sel_bus][:5]):
             obdf = matched[matched["_bus_up"]==other_bus].copy()
             obdf["datetime"] = pd.to_datetime(obdf["datetime"], errors="coerce")
@@ -1012,7 +1246,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     fig.add_trace(go.Scatter(
         x=plot_df["datetime"], y=plot_df["price"],
         mode="lines", name=sel_bus,
-        line=dict(color="#00ff9d", width=2.2),
+        line=dict(color="#c8102e", width=2.2),
         hovertemplate="<b>%{x|%b %d %H:%M}</b><br>$%{y:.2f}/MWh<extra></extra>"
     ))
 
@@ -1021,8 +1255,8 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         fig.add_trace(go.Scatter(
             x=plot_df["datetime"], y=plot_df["ma3"],
             mode="lines", name=f"{sel_bus} MA3",
-            line=dict(color="#00ff9d", width=1.2, dash="dot"),
-            opacity=0.5,
+            line=dict(color="#c8102e", width=1.2, dash="dot"),
+            opacity=0.45,
             hovertemplate="MA3: $%{y:.2f}<extra></extra>"
         ))
 
@@ -1032,16 +1266,16 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
             fig.add_trace(go.Scatter(
                 x=charge_df["datetime"], y=charge_df["price"],
                 mode="markers", name="CHARGE ▼",
-                marker=dict(color="#00ff9d", size=7, symbol="triangle-down",
-                            line=dict(color="#030712", width=1)),
+                marker=dict(color="#1a6a1a", size=7, symbol="triangle-down",
+                            line=dict(color="#fff", width=1)),
                 hovertemplate="CHARGE<br>$%{y:.2f}<extra></extra>"
             ))
         if len(discharge_df):
             fig.add_trace(go.Scatter(
                 x=discharge_df["datetime"], y=discharge_df["price"],
                 mode="markers", name="DISCHARGE ▲",
-                marker=dict(color="#ff2d55", size=7, symbol="triangle-up",
-                            line=dict(color="#030712", width=1)),
+                marker=dict(color="#c8102e", size=7, symbol="triangle-up",
+                            line=dict(color="#fff", width=1)),
                 hovertemplate="DISCHARGE<br>$%{y:.2f}<extra></extra>"
             ))
 
@@ -1068,29 +1302,29 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 
     fig.update_layout(
         title=dict(
-            text=f"LMP PRICE CHART — {date_label} — {resample_label} intervals",
-            font=dict(family="Orbitron", size=11, color="#3a6080"), x=0.01
+            text=f"LMP Price Chart — {date_label}",
+            font=dict(family="Playfair Display", size=13, color="#1a1a18"), x=0.01
         ),
         height=420,
-        paper_bgcolor="#030712",
-        plot_bgcolor="#060d1a",
-        font=dict(family="Share Tech Mono", color="#c8e6ff", size=10),
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#f7f7f5",
+        font=dict(family="DM Sans", color="#1a1a18", size=10),
         xaxis=dict(
-            gridcolor="#0a1f35", linecolor="#1a3050",
-            tickfont=dict(size=10, color="#3a6080"),
-            title=dict(text="Time (CST)", font=dict(color="#3a6080", size=10)),
+            gridcolor="#e2e0db", linecolor="#d0cdc6",
+            tickfont=dict(size=10, color="#6b6b64"),
+            title=dict(text="Time (CST)", font=dict(color="#6b6b64", size=10)),
             rangeslider=dict(visible=True, thickness=0.04,
-                             bgcolor="#030712", bordercolor="#0a1f35"),
+                             bgcolor="#f0efec", bordercolor="#e2e0db"),
             type="date",
         ),
         yaxis=dict(
-            gridcolor="#0a1f35", linecolor="#1a3050",
-            tickfont=dict(size=10, color="#3a6080"),
-            title=dict(text="LMP ($/MWh)", font=dict(color="#3a6080", size=10)),
+            gridcolor="#e2e0db", linecolor="#d0cdc6",
+            tickfont=dict(size=10, color="#6b6b64"),
+            title=dict(text="LMP ($/MWh)", font=dict(color="#6b6b64", size=10)),
             tickprefix="$",
         ),
         legend=dict(
-            bgcolor="rgba(6,13,26,0.88)", bordercolor="#1a3050", borderwidth=1,
+            bgcolor="rgba(247,247,245,0.96)", bordercolor="#e2e0db", borderwidth=1,
             font=dict(size=10), orientation="h",
             yanchor="bottom", y=1.02, xanchor="left", x=0,
         ),
@@ -1114,7 +1348,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     )
 
     # ── ROW 6: Deep-dive use-case tables ─────────────────────────
-    st.markdown('<div class="section-label" style="margin-top:20px">📊 DEEP-DIVE ANALYSIS</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label" style="margin-top:24px">Deep-Dive Analysis</div>', unsafe_allow_html=True)
 
     USE_CASES = {
         "arbitrage":     ("💰 Arbitrage Revenue",   "Charge/discharge windows · BESS revenue estimate"),
@@ -1168,7 +1402,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                            "Annual Revenue $": st.column_config.NumberColumn(format="$%.0f")})
         bus_col = "Bus" if "Bus" in result.columns else result.columns[0]
         fig_a = go.Figure(go.Bar(x=result[bus_col], y=result["Annual Revenue $"],
-            marker_color="#00ff9d", marker_line_color="rgba(0,255,157,0.4)", marker_line_width=1))
+            marker_color="#c8102e", marker_line_color="rgba(200,16,46,0.3)", marker_line_width=1))
         fig_a.update_layout(**neon_plotly_layout("ANNUAL ARBITRAGE REVENUE BY BUS", 260))
         st.plotly_chart(fig_a, use_container_width=True)
         st.download_button("↓ Arbitrage CSV", data=to_csv_bytes(result),
@@ -1180,7 +1414,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
             fig_c = go.Figure(go.Bar(
                 x=result["Bus A"] + " ↔ " + result["Bus B"],
                 y=result["Avg Spread $/MWh"],
-                marker_color="#ff6b00", marker_line_color="rgba(255,107,0,0.4)", marker_line_width=1))
+                marker_color="#1a3a7a", marker_line_color="rgba(26,58,122,0.3)", marker_line_width=1))
             fig_c.update_layout(**neon_plotly_layout("CONGESTION SPREAD", 260))
             st.plotly_chart(fig_c, use_container_width=True)
         st.download_button("↓ Congestion CSV", data=to_csv_bytes(result),
@@ -1188,14 +1422,14 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 
     elif uc_sel == "curtailment" and isinstance(result, pd.DataFrame):
         for _, row in result.iterrows():
-            rc = {"HIGH":"#ff2d55","MED":"#ff6b00","LOW":"#00ff9d"}.get(row.get("Curtailment Risk",""), "#3a6080")
+            rc = {"HIGH":"#c8102e","MED":"#b8860b","LOW":"#1a6a1a"}.get(row.get("Curtailment Risk",""), "#9b9b92")
             st.markdown(f"""
-            <div style="background:rgba(6,13,26,0.8);border:1px solid {rc};border-radius:4px;
-                 padding:10px 16px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-family:Share Tech Mono,monospace;font-size:12px;color:#00c8ff">{row["Bus"]}</span>
-                <span style="font-family:Share Tech Mono,monospace;font-size:11px;color:#c8e6ff">Neg: <b style="color:{rc}">{row["Negative Price %"]}%</b></span>
-                <span style="font-family:Share Tech Mono,monospace;font-size:11px;color:#c8e6ff">Avg: ${row["Avg Price $/MWh"]}/MWh</span>
-                <span style="font-family:Orbitron,monospace;font-size:11px;color:{rc};text-shadow:0 0 6px {rc}">{row["Curtailment Risk"]}</span>
+            <div style="background:#f7f7f5;border:1px solid {rc};border-left:4px solid {rc};border-radius:2px;
+                 padding:12px 16px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1a1a18;font-weight:500">{row["Bus"]}</span>
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:#3d3d38">Neg: <b style="color:{rc}">{row["Negative Price %"]}%</b></span>
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:#3d3d38">Avg: ${row["Avg Price $/MWh"]}/MWh</span>
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:{rc}">{row["Curtailment Risk"]}</span>
             </div>""", unsafe_allow_html=True)
         st.download_button("↓ Curtailment CSV", data=to_csv_bytes(result),
                            file_name="curtailment.csv", mime="text/csv", key=f"{key_prefix}_dl_curt")
@@ -1209,15 +1443,15 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         dm3.metric("Discharge Hours",result["discharge_hours"])
         fig_b = go.Figure()
         fig_b.add_trace(go.Scatter(x=bdf2["datetime"], y=bdf2["price"],
-            mode="lines", name="LMP", line=dict(color="#00c8ff", width=1.5)))
+            mode="lines", name="LMP", line=dict(color="#c8102e", width=1.5)))
         fig_b.add_trace(go.Scatter(x=bdf2["datetime"], y=bdf2["roll_avg"],
-            mode="lines", name="Rolling Avg", line=dict(color="#ff6b00", width=1.5, dash="dot")))
+            mode="lines", name="Rolling Avg", line=dict(color="#b8860b", width=1.5, dash="dot")))
         c_df = bdf2[bdf2["signal"]=="CHARGE"]
         d_df = bdf2[bdf2["signal"]=="DISCHARGE"]
         if len(c_df): fig_b.add_trace(go.Scatter(x=c_df["datetime"], y=c_df["price"], mode="markers",
-            name="CHARGE", marker=dict(color="#00ff9d", size=8, symbol="triangle-down")))
+            name="CHARGE", marker=dict(color="#1a6a1a", size=8, symbol="triangle-down")))
         if len(d_df): fig_b.add_trace(go.Scatter(x=d_df["datetime"], y=d_df["price"], mode="markers",
-            name="DISCHARGE", marker=dict(color="#ff2d55", size=8, symbol="triangle-up")))
+            name="DISCHARGE", marker=dict(color="#c8102e", size=8, symbol="triangle-up")))
         fig_b.update_layout(**neon_plotly_layout(f"BESS DISPATCH — {bus2}", 300))
         st.plotly_chart(fig_b, use_container_width=True)
         st.download_button("↓ Dispatch CSV", data=to_csv_bytes(bdf2),
@@ -1240,7 +1474,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                            file_name="revenue.csv", mime="text/csv", key=f"{key_prefix}_dl_rev")
 
     # ── PDF export ────────────────────────────────────────────────
-    st.markdown('<div class="section-label" style="margin-top:16px">📄 EXPORT REPORT</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label" style="margin-top:20px">Export Report</div>', unsafe_allow_html=True)
     lmp_summary = None
     try:
         lmp_summary = matched.groupby("_bus_up")["price"].agg(
@@ -1265,16 +1499,17 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 # Sidebar
 # ═══════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("""
-    <div style="padding:14px 0 16px">
-        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#00ff9d;
-             letter-spacing:.3em;text-transform:uppercase;margin-bottom:5px;text-shadow:0 0 8px #00ff9d">⚡ SunStripe · ERCOT</div>
-        <div style="font-family:'Orbitron',monospace;font-size:13px;font-weight:700;
-             color:#c8e6ff;line-height:1.5;letter-spacing:.05em">NODAL ANALYSIS<br>
-             <span style="color:#00ff9d;text-shadow:0 0 10px #00ff9d">PLATFORM</span></div>
+    st.markdown(f"""
+    <div style="padding:24px 20px 20px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.4);
+             letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px">Energy Intelligence</div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;
+             color:#fff;line-height:1.2;letter-spacing:-0.02em">SunStripe</div>
+        <div style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:300;
+             color:rgba(255,255,255,0.5);margin-top:2px;letter-spacing:.04em">ERCOT Nodal Intelligence</div>
+        <div style="margin-top:14px;height:1px;background:rgba(200,16,46,0.6)"></div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown("---")
 
     page = st.radio("", [
         "🗺️ Infrastructure Map",
@@ -1284,36 +1519,59 @@ with st.sidebar:
         "📋 Browse All",
     ], label_visibility="collapsed")
 
-    st.markdown("---")
     st.markdown(f"""
-    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#3a6080;
-         letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;
-         border-bottom:1px solid #0a1f35;padding-bottom:6px">// DATASET · FEB 2026</div>
-    <div style="display:flex;flex-direction:column;gap:9px">
-        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00ff9d;text-shadow:0 0 10px #00ff9d">{len(df):,}</div><div style="font-size:10px;color:#3a6080">Settlement Points</div></div>
-        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00c8ff;text-shadow:0 0 10px #00c8ff">{df["Substation"].nunique():,}</div><div style="font-size:10px;color:#3a6080">Substations</div></div>
-        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#ff6b00;text-shadow:0 0 10px #ff6b00">{df[df["Hub"]!=""]["Hub"].nunique()}</div><div style="font-size:10px;color:#3a6080">Hubs</div></div>
-        <div><div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00ff9d;text-shadow:0 0 10px #00ff9d">{df[df["Resource Node"]!=""].shape[0]:,}</div><div style="font-size:10px;color:#3a6080">Resource Nodes</div></div>
+    <div style="padding:20px 20px 0;margin-top:8px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.3);
+             letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;
+             padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08)">Dataset · Feb 2026</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:rgba(255,255,255,0.45)">Settlement Points</span>
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff">{len(df):,}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:rgba(255,255,255,0.45)">Substations</span>
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff">{df["Substation"].nunique():,}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:rgba(255,255,255,0.45)">Hubs</span>
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#c8102e">{df[df["Hub"]!=""]["Hub"].nunique()}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:'DM Sans',sans-serif;font-size:12px;color:rgba(255,255,255,0.45)">Resource Nodes</span>
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff">{df[df["Resource Node"]!=""].shape[0]:,}</span>
+            </div>
+        </div>
+        <div style="margin-top:20px;height:1px;background:rgba(255,255,255,0.08)"></div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown("---")
+
     st.markdown("""
+    <div style="padding:16px 20px 24px">
     <a href="https://ercot-bess-dashboard-nhh9eztsqeuqxxuz97kacu.streamlit.app/" target="_blank"
-       style="display:block;padding:7px 10px;background:#091424;border-radius:4px;border:1px solid #0a1f35;
-              font-family:'Share Tech Mono',monospace;font-size:11px;color:#3a6080;text-decoration:none;margin-bottom:5px">
-              ⚡ ERCOT BESS Dashboard ↗</a>
+       style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;
+              background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+              border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;
+              color:rgba(255,255,255,0.6);text-decoration:none;margin-bottom:6px;
+              transition:all .15s">
+        <span>ERCOT BESS Dashboard</span><span style="opacity:.4">↗</span></a>
     <a href="https://fatal-flaw-o7aks4agtoffgyydbvrguj.streamlit.app/" target="_blank"
-       style="display:block;padding:7px 10px;background:#091424;border-radius:4px;border:1px solid #0a1f35;
-              font-family:'Share Tech Mono',monospace;font-size:11px;color:#3a6080;text-decoration:none">
-              🌿 SiteIQ Fatal Flaw ↗</a>
+       style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;
+              background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+              border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;
+              color:rgba(255,255,255,0.6);text-decoration:none;
+              transition:all .15s">
+        <span>SiteIQ Fatal Flaw</span><span style="opacity:.4">↗</span></a>
+    </div>
     """, unsafe_allow_html=True)
 
 
 if page == "🗺️ Infrastructure Map":
 
-    st.markdown("""<div class="page-header">
-        <div class="tag">⚡ SunStripe · ERCOT</div>
-        <h1>SUBSTATION <span>SEARCH</span></h1>
+    st.markdown(f"""<div class="page-header">
+        <div><div class="tag">Infrastructure · OSM + ERCOT</div>
+        <h1>Substation <span>Search</span></h1></div>
+        <div class="ph-right">ERCOT Texas Grid<br>{len(df):,} settlement points</div>
     </div>""", unsafe_allow_html=True)
 
     for k, v in [("search_results",None),("selected_osm",None),("ercot_sel_sub",None),
@@ -1321,8 +1579,8 @@ if page == "🗺️ Infrastructure Map":
         if k not in st.session_state: st.session_state[k] = v
 
     # ── SEARCH PARAMETERS ─────────────────────────────────────────
-    st.markdown('<div style="background:#060d1a;border:1px solid rgba(0,200,255,0.2);border-radius:4px;padding:18px 20px;margin-bottom:18px;box-shadow:0 0 24px rgba(0,200,255,0.04);">', unsafe_allow_html=True)
-    st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:9px;color:#3a6080;letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px">// SEARCH PARAMETERS</div>', unsafe_allow_html=True)
+    st.markdown('<div style="background:#f7f7f5;border:1px solid #e2e0db;border-radius:2px;padding:20px 22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">', unsafe_allow_html=True)
+    st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#9b9b92;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;font-weight:500">Search Parameters</div>', unsafe_allow_html=True)
 
     # ── Geocode search bar ─────────────────────────────────────────
     geo_col, geo_btn = st.columns([5, 1])
@@ -1417,9 +1675,9 @@ if page == "🗺️ Infrastructure Map":
 
     if results is None:
         st.markdown("""<div class="map-placeholder">
-            <div class="mp-icon">⚡</div>
+            <div class="mp-icon">🗺️</div>
             <div class="mp-title">No search yet</div>
-            <div class="mp-sub">Enter an address or coordinates above · set radius · click Search</div>
+            <div class="mp-sub">Enter an address or coordinates above, set your radius, and click Search.</div>
         </div>""", unsafe_allow_html=True)
     else:
         elements  = results["elements"]
@@ -1486,9 +1744,9 @@ if page == "🗺️ Infrastructure Map":
 
         # Legend
         st.markdown(f"""
-        <div style="display:flex;gap:20px;font-family:Share Tech Mono,monospace;font-size:11px;
-             color:#3a6080;padding:6px 12px;background:rgba(3,7,18,0.9);border:1px solid rgba(0,200,255,0.2);
-             border-radius:4px;margin-top:6px;flex-wrap:wrap;">
+        <div style="display:flex;gap:20px;font-family:DM Mono,monospace;font-size:11px;
+             color:#6b6b64;padding:8px 14px;background:#f7f7f5;border:1px solid #e2e0db;
+             border-radius:2px;margin-top:8px;flex-wrap:wrap;">
             <span>● <span style="color:#00ff9d;text-shadow:0 0 6px #00ff9d">Search Centre</span></span>
             <span>◆ <span style="color:#ff6b00;text-shadow:0 0 6px #ff6b00">Hub ≥{results["hub_thresh"]} kV</span> — {len(hubs_list)}</span>
             <span>● <span style="color:#00c8ff;text-shadow:0 0 6px #00c8ff">Node &lt;{results["hub_thresh"]} kV</span> — {len(node_list)}</span>
@@ -1514,7 +1772,7 @@ if page == "🗺️ Infrastructure Map":
                 op      = el.get("operator") or ""
                 is_sel  = bool(st.session_state.selected_osm and
                                st.session_state.selected_osm.get("osm_id") == el["osm_id"])
-                dot_col = "#ff6b00" if is_hub else "#00c8ff"
+                dot_col = "#8b0b1f" if is_hub else "#1a3a7a"
                 hub_bdg = ('<span style="font-size:9px;background:rgba(255,107,0,0.12);'
                            'border:1px solid rgba(255,107,0,0.4);color:#ff6b00;border-radius:2px;'
                            'padding:1px 6px;margin-left:6px;font-family:Share Tech Mono,monospace">'
@@ -1559,7 +1817,7 @@ if page == "🗺️ Infrastructure Map":
             st.markdown("---")
             st.markdown(f"""
             <div class="osm-card" style="border-left-color:{'#ff6b00' if is_hub else '#00c8ff'}">
-                <div class="oc-title" style="color:{'#ff6b00' if is_hub else '#00c8ff'}">
+                <div class="oc-title" style="color:{'#8b0b1f' if is_hub else '#1a3a7a'}">
                     {'◆ HUB' if is_hub else '● NODE'} &nbsp; {osm_name}
                 </div>
                 <div class="oc-grid">
@@ -1570,16 +1828,16 @@ if page == "🗺️ Infrastructure Map":
                 </div>
                 <a href="https://fatal-flaw-o7aks4agtoffgyydbvrguj.streamlit.app/?lat={sel['lat']}&lon={sel['lon']}&name={osm_name.replace(' ','%20')}"
                    target="_blank"
-                   style="display:inline-block;margin-top:8px;padding:5px 14px;background:rgba(0,200,255,0.08);
-                          border:1px solid rgba(0,200,255,0.3);border-radius:3px;font-family:Share Tech Mono,monospace;
-                          font-size:11px;color:#00c8ff;text-decoration:none;text-shadow:0 0 6px #00c8ff">
+                   style="display:inline-block;margin-top:8px;padding:7px 16px;background:#f7f7f5;
+                          border:1px solid #d0cdc6;border-radius:2px;font-family:'DM Sans',sans-serif;
+                          font-size:12px;font-weight:500;color:#1a3a7a;text-decoration:none;">
                    🌿 Open in SiteIQ Fatal Flaw ↗
                 </a>
             </div>
             """, unsafe_allow_html=True)
 
             # ERCOT match
-            st.markdown('<div class="section-label">ERCOT CSV MATCH</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-label">ERCOT Match</div>', unsafe_allow_html=True)
             matches = match_to_ercot(osm_name, osm_volt)
             if not matches:
                 st.warning(f"No ERCOT match found for **{osm_name}**.")
@@ -1622,9 +1880,10 @@ if page == "🗺️ Infrastructure Map":
 # PAGE 2: NODE & HUB SELECTOR
 # ═══════════════════════════════════════════════════════════════════
 elif page == "⚡ Node & Hub Selector":
-    st.markdown("""<div class="page-header">
-        <div class="tag">⚡ SunStripe · ERCOT</div>
-        <h1>NODE & HUB <span>SELECTOR</span></h1>
+    st.markdown(f"""<div class="page-header">
+        <div><div class="tag">Settlement Points · LMP Analysis</div>
+        <h1>Node & Hub <span>Selector</span></h1></div>
+        <div class="ph-right">Select substations<br>to resolve buses & run LMP analysis</div>
     </div>""", unsafe_allow_html=True)
 
     st.markdown('<div class="section-label"><span class="step-badge">1</span> Voltage Level</div>', unsafe_allow_html=True)
@@ -1669,7 +1928,7 @@ elif page == "⚡ Node & Hub Selector":
 # PAGE 3: BUS LOOKUP
 # ═══════════════════════════════════════════════════════════════════
 elif page == "🔍 Bus Lookup":
-    st.markdown("""<div class="page-header"><div class="tag">⚡ SunStripe · ERCOT</div><h1>BUS <span>LOOKUP</span></h1></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="page-header"><div><div class="tag">Electrical Bus · PSSE Reference</div><h1>Bus <span>Lookup</span></h1></div></div>""", unsafe_allow_html=True)
     c1,c2 = st.columns([3,1])
     with c1: bus_q = st.text_input("Bus Name", placeholder="e.g. CAMPBELLSW, BUCKRA, 0001...", key="bus_q")
     with c2: bus_zone = st.selectbox("Zone",["All Zones","LZ_NORTH","LZ_SOUTH","LZ_WEST","LZ_HOUSTON"])
@@ -1694,7 +1953,7 @@ elif page == "🔍 Bus Lookup":
 # PAGE 4: SUBSTATION LOOKUP
 # ═══════════════════════════════════════════════════════════════════
 elif page == "🏭 Substation Lookup":
-    st.markdown("""<div class="page-header"><div class="tag">⚡ SunStripe · ERCOT</div><h1>SUBSTATION <span>LOOKUP</span></h1></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="page-header"><div><div class="tag">ERCOT Substation Registry</div><h1>Substation <span>Lookup</span></h1></div></div>""", unsafe_allow_html=True)
     c1,c2 = st.columns([3,1])
     with c1: sub_q = st.text_input("Substation Name", placeholder="e.g. CAMPBELL, LOOKOUT, VICTORIA...")
     with c2:
@@ -1719,7 +1978,7 @@ elif page == "🏭 Substation Lookup":
 # PAGE 5: BROWSE ALL
 # ═══════════════════════════════════════════════════════════════════
 elif page == "📋 Browse All":
-    st.markdown("""<div class="page-header"><div class="tag">⚡ SunStripe · ERCOT</div><h1>BROWSE <span>ALL</span></h1></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="page-header"><div><div class="tag">Full Dataset · 19,056 Points</div><h1>Browse <span>All</span></h1></div></div>""", unsafe_allow_html=True)
     c1,c2,c3,c4 = st.columns([3,1,1,1])
     with c1: bq = st.text_input("Search","",placeholder="Bus, PSSE Name, Substation...")
     with c2: bz = st.selectbox("Zone",["All","LZ_NORTH","LZ_SOUTH","LZ_WEST","LZ_HOUSTON"])
