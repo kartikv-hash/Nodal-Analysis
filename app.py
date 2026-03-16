@@ -862,26 +862,51 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
     # ── CONGESTION INDEX (CI) + CSS ───────────────────────────────
     # CI(node, t) = LMP_hub(t) − LMP_node(t)
     # CSS(node)   = mean(|CI|)  — Congestion Severity Score
+    #
+    # Hub selection priority:
+    #   1. HB_* hub buses in the LMP file itself
+    #   2. Hub assigned in the ERCOT CSV for these buses (resolved_df["Hub"])
+    #   3. All-bus average as synthetic hub (for same-substation analysis)
     if use_case == "congestion":
         bus_list = matched["_bus_up"].unique().tolist()
-        if len(bus_list) < 2:
-            # Single-bus: compute CI vs synthetic mean of all available buses
-            pass
 
-        # Build hourly pivot: rows=time, cols=bus, values=LMP
+        # Build pivot
         pivot = matched.pivot_table(
             index="datetime", columns="_bus_up", values="price", aggfunc="mean")
 
-        # Choose hub: prefer HB_ hub if present, else highest-avg-price bus
-        hub_candidates = [b for b in pivot.columns if b.startswith("HB_")]
-        if hub_candidates:
-            hub = hub_candidates[0]
-        else:
-            hub = pivot.mean().idxmax()
+        # ── Find best hub reference ───────────────────────────────
+        hub = None
+        hub_source = ""
+
+        # 1. HB_ hub in the LMP data itself
+        hb_in_data = [b for b in pivot.columns if b.upper().startswith("HB_")]
+        if hb_in_data:
+            hub = hb_in_data[0]
+            hub_source = "HB hub in uploaded LMP file"
+
+        # 2. Hub from ERCOT CSV for these buses
+        if hub is None:
+            hub_col = resolved_df[resolved_df["Bus"].str.upper().isin(set(pivot.columns))]
+            ercot_hubs = hub_col[hub_col["Hub"].str.strip() != ""]["Hub"].unique().tolist()
+            if ercot_hubs:
+                hub = ercot_hubs[0].upper().strip()
+                hub_source = f"ERCOT CSV assigned hub: {hub}"
+                # If this hub is not in the LMP data, note it but still use it as label
+                if hub not in pivot.columns:
+                    # Cannot compute CI without hub LMP — use all-bus avg instead
+                    pivot["_AVG_HUB"] = pivot.mean(axis=1)
+                    hub = "_AVG_HUB"
+                    hub_source = f"All-bus average (ERCOT hub {ercot_hubs[0]} not in LMP data)"
+
+        # 3. Fallback: all-bus average as synthetic hub
+        if hub is None:
+            pivot["_AVG_HUB"] = pivot.mean(axis=1)
+            hub = "_AVG_HUB"
+            hub_source = "All-bus average (no hub reference available)"
 
         results = []
         for node in pivot.columns:
-            if node == hub:
+            if node == hub or node == "_AVG_HUB":
                 continue
             ci_series = pivot[hub] - pivot[node]           # CI(node,t)
             css       = ci_series.abs().mean()             # CSS = mean(|CI|)
@@ -891,21 +916,21 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
             load_side       = int((ci_series < -10).sum())
             avg_ci          = round(ci_series.mean(), 2)
             max_ci          = round(ci_series.abs().max(), 2)
+            spread_ci       = round(ci_series.max() - ci_series.min(), 2)
 
-            # Risk label (from reference)
             if css > 10:   cong_risk = "🔴 HIGH"
             elif css > 3:  cong_risk = "🟡 MEDIUM"
             else:          cong_risk = "🟢 LOW"
 
-            # Congestion Rent proxy: CR = CI × capacity_mw ($/hr)
             cr_proxy = round(ci_series.mean() * batt_mw, 0)
 
             results.append({
                 "Node":               node,
-                "Hub (reference)":    hub,
+                "Hub (reference)":    hub.replace("_AVG_HUB","Avg of all buses"),
                 "Avg CI ($/MWh)":     avg_ci,
                 "CSS ($/MWh)":        round(css, 2),
                 "Max |CI| ($/MWh)":   max_ci,
+                "CI Spread ($/MWh)":  spread_ci,
                 "Congestion %":       congestion_pct,
                 "Congested Hours":    congested_hours,
                 "Source-Side Hours":  source_side,
@@ -918,9 +943,11 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
             return None, "Not enough nodes for congestion analysis (need ≥2 buses)"
 
         df_out = pd.DataFrame(results).sort_values("CSS ($/MWh)", ascending=False)
-        # Also return the full CI time-series for chart
-        df_out.attrs["pivot"]  = pivot
-        df_out.attrs["hub"]    = hub
+        df_out.attrs["hub"]        = hub.replace("_AVG_HUB","Avg of all buses")
+        df_out.attrs["hub_source"] = hub_source
+        # Flag same-substation analysis so UI can warn
+        unique_prices = pivot.drop(columns=[c for c in ["_AVG_HUB"] if c in pivot.columns]).std().mean()
+        df_out.attrs["low_variance"] = bool(unique_prices < 0.5)
         return df_out, None
 
     # ── CURTAILMENT PROBABILITY INDEX (CPI) + ECS ────────────────
@@ -1468,14 +1495,29 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     # CONGESTION — CI / CSS dashboard
     # ══════════════════════════════════════════════════════════════
     elif uc_sel == "congestion" and isinstance(result, pd.DataFrame):
-        hub = result["Hub (reference)"].iloc[0] if len(result) else "—"
+        hub        = result.attrs.get("hub", result["Hub (reference)"].iloc[0] if len(result) else "—")
+        hub_source = result.attrs.get("hub_source", "")
+        low_var    = result.attrs.get("low_variance", False)
+
+        # Same-substation warning
+        if low_var:
+            st.warning(
+                f"⚠️ **Same-substation analysis detected.** All buses belong to the same "
+                f"substation and have nearly identical LMPs — congestion between them will be ~$0. "
+                f"For meaningful congestion analysis, include buses from **different substations** "
+                f"or upload an LMP file containing an **HB_HOUSTON / HB_NORTH / HB_SOUTH / HB_WEST** "
+                f"hub price column alongside your node buses."
+            )
+
         st.markdown(f"""
         <div style="background:#f0efec;border-left:4px solid #1a3a7a;border-radius:2px;
              padding:10px 16px;margin-bottom:14px;font-family:DM Sans,sans-serif;font-size:13px;color:#3d3d38">
             <b>Congestion Index (CI)</b> = LMP<sub>hub</sub> − LMP<sub>node</sub> &nbsp;·&nbsp;
-            <b>Hub reference:</b> <code>{hub}</code> &nbsp;·&nbsp;
+            <b>Hub reference:</b> <code style="background:#e8f0fe;padding:1px 6px;border-radius:2px">{hub}</code>
+            &nbsp;·&nbsp; <span style="color:#6b6b64;font-size:12px">{hub_source}</span><br>
             <b>CSS</b> = mean(|CI|) per node &nbsp;·&nbsp;
-            Threshold: |CI| &gt; $10/MWh = congested
+            Threshold: |CI| &gt; $10/MWh = congested &nbsp;·&nbsp;
+            <span style="color:#c8102e;font-weight:600">For best results: include HB_ hub buses in your LMP file</span>
         </div>""", unsafe_allow_html=True)
 
         # Summary metric row
