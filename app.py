@@ -1482,12 +1482,9 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 name=risk_label,
                 marker_color=color_map.get(risk_label, "#6b6b64"),
                 hovertemplate="<b>%{x}</b><br>CSS: $%{y:.2f}/MWh<extra></extra>"))
-        fig_css.update_layout(
-            **neon_plotly_layout("Congestion Severity Score (CSS) by Node", 300),
-            barmode="stack",
-            xaxis=dict(tickangle=-35),
-            yaxis=dict(title="CSS ($/MWh)", tickprefix="$"),
-        )
+        _lay = neon_plotly_layout("Congestion Severity Score (CSS) by Node", 300)
+        _lay.update(barmode="stack", xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="CSS ($/MWh)",tickprefix="$",tickfont=dict(size=10,color="#6b6b64")))
+        fig_css.update_layout(**_lay)
         st.plotly_chart(fig_css, use_container_width=True)
 
         # Congestion % gauge-style bar
@@ -1504,11 +1501,9 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
             text=result_s["Congestion %"].apply(lambda v: f"{v:.1f}%"),
             textposition="outside",
             hovertemplate="<b>%{x}</b><br>Congested: %{y:.1f}% of intervals<extra></extra>"))
-        fig_pct.update_layout(
-            **neon_plotly_layout("Congestion % of Intervals (|CI| > $10/MWh)", 300),
-            xaxis=dict(tickangle=-35),
-            yaxis=dict(title="Congestion %", ticksuffix="%"),
-        )
+        _lay = neon_plotly_layout("Congestion % of Intervals (|CI| > $10/MWh)", 300)
+        _lay.update(xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="Congestion %",ticksuffix="%",tickfont=dict(size=10,color="#6b6b64")))
+        fig_pct.update_layout(**_lay)
         st.plotly_chart(fig_pct, use_container_width=True)
 
         # Source-side vs Load-side stacked bar
@@ -1522,12 +1517,9 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 x=result["Node"], y=result["Load-Side Hours"],
                 name="Load-Side (CI < −10)",  marker_color="#1a3a7a",
                 hovertemplate="%{x}<br>Load-Side: %{y} hrs<extra></extra>"))
-            fig_side.update_layout(
-                **neon_plotly_layout("Congestion Direction — Source vs Load Side", 280),
-                barmode="group",
-                xaxis=dict(tickangle=-35),
-                yaxis=dict(title="Hours"),
-            )
+            _lay = neon_plotly_layout("Congestion Direction — Source vs Load Side", 280)
+            _lay.update(barmode="group", xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="Hours",tickfont=dict(size=10,color="#6b6b64")))
+            fig_side.update_layout(**_lay)
             st.plotly_chart(fig_side, use_container_width=True)
 
         # Congestion Rent proxy
@@ -1537,10 +1529,9 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 x=result["Node"], y=result["CR Proxy ($/hr)"],
                 marker_color=["#c8102e" if v>=0 else "#1a3a7a" for v in result["CR Proxy ($/hr)"]],
                 hovertemplate="%{x}<br>CR Proxy: $%{y:,.0f}/hr<extra></extra>"))
-            fig_cr.update_layout(
-                **neon_plotly_layout("Congestion Rent Proxy ($/hr) = Avg CI × Capacity MW", 240),
-                yaxis=dict(title="$/hr", tickprefix="$"),
-                xaxis=dict(tickangle=-35))
+            _lay = neon_plotly_layout("Congestion Rent Proxy ($/hr) = Avg CI × Capacity MW", 240)
+            _lay.update(xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="$/hr",tickprefix="$",tickfont=dict(size=10,color="#6b6b64")))
+            fig_cr.update_layout(**_lay)
             st.plotly_chart(fig_cr, use_container_width=True)
 
         # Full table
@@ -1602,12 +1593,9 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         fig_cpi.add_hline(y=5,  line_dash="dot", line_color="#b8860b", line_width=1,
                           annotation_text="MEDIUM threshold 5%",
                           annotation_font=dict(color="#b8860b", size=9, family="DM Mono"))
-        fig_cpi.update_layout(
-            **neon_plotly_layout("Curtailment Probability Index (CPI %) by Bus", 320),
-            barmode="stack",
-            xaxis=dict(tickangle=-35),
-            yaxis=dict(title="CPI %", ticksuffix="%"),
-        )
+        _lay = neon_plotly_layout("Curtailment Probability Index (CPI %) by Bus", 320)
+        _lay.update(barmode="stack", xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="CPI %",ticksuffix="%",tickfont=dict(size=10,color="#6b6b64")))
+        fig_cpi.update_layout(**_lay)
         st.plotly_chart(fig_cpi, use_container_width=True)
 
         # Curtailment hours breakdown: ≤$0 vs <-$20
@@ -1620,12 +1608,9 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
             x=result_s["Bus"], y=result_s["< −$20 Hours"],
             name="< −$20/MWh (deep neg)", marker_color="#c8102e",
             hovertemplate="%{x}<br><−$20 hrs: %{y}<extra></extra>"))
-        fig_hrs.update_layout(
-            **neon_plotly_layout("Curtailment Hours — ECS Events by Severity", 280),
-            barmode="overlay",
-            xaxis=dict(tickangle=-35),
-            yaxis=dict(title="Hours"),
-        )
+        _lay = neon_plotly_layout("Curtailment Hours — ECS Events by Severity", 280)
+        _lay.update(barmode="overlay", xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="Hours",tickfont=dict(size=10,color="#6b6b64")))
+        fig_hrs.update_layout(**_lay)
         st.plotly_chart(fig_hrs, use_container_width=True)
 
         # Risk cards per bus
