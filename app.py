@@ -581,6 +581,242 @@ def fetch_ercot_dam_live(settlement_point, date_from, date_to):
 # ═══════════════════════════════════════════════════════════════════
 # BESS rolling-average helper (from ERCOT BESS Dashboard)
 # ═══════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════
+# PDF Report Generator
+# ═══════════════════════════════════════════════════════════════════
+def generate_pdf_report(search_results, ercot_sub, sub_df, lmp_summary=None):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_margins(15, 15, 15)
+    pdf.set_fill_color(26, 26, 24)
+    pdf.rect(0, 0, 210, 28, 'F')
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.set_text_color(200, 16, 46)
+    pdf.set_xy(15, 8)
+    pdf.cell(0, 10, "SUNSTRIPE  |  ERCOT NODAL ANALYSIS REPORT", ln=True)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(150, 150, 150)
+    pdf.set_xy(15, 19)
+    pdf.cell(0, 6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}  |  Confidential", ln=True)
+    pdf.set_xy(15, 34)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_text_color(200, 16, 46)
+    pdf.cell(0, 8, "SEARCH SUMMARY", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(30, 30, 30)
+    if search_results:
+        pdf.cell(0, 6, f"Centre: {search_results['lat']:.4f}, {search_results['lon']:.4f}  |  Radius: {search_results['radius_mi']} miles", ln=True)
+        pdf.cell(0, 6, f"Substations found: {len(search_results['elements'])}  |  Hubs: {sum(1 for e in search_results['elements'] if e['is_hub'])}  |  Nodes: {sum(1 for e in search_results['elements'] if not e['is_hub'])}", ln=True)
+    pdf.ln(4)
+    if ercot_sub:
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_text_color(200, 16, 46)
+        pdf.cell(0, 8, f"ERCOT SUBSTATION: {ercot_sub}", ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(30, 30, 30)
+        buses = sub_df["Bus"].tolist()
+        kvs   = ", ".join(sorted(sub_df["kV"].unique(), key=lambda x: -float(x) if x else 0))
+        zones = ", ".join(sub_df["Zone"].unique())
+        hubs  = ", ".join(sub_df[sub_df["Hub"]!=""]["Hub"].unique()) or "—"
+        rn    = sub_df[sub_df["Resource Node"]!=""].shape[0]
+        pdf.cell(0, 6, f"Buses: {len(buses)}  |  Voltages: {kvs} kV  |  Zone(s): {zones}", ln=True)
+        pdf.cell(0, 6, f"Hub(s): {hubs}  |  Resource Nodes: {rn}", ln=True)
+        pdf.ln(3)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_fill_color(240, 240, 240)
+        col_w = [45, 20, 25, 35, 35, 30]
+        for h, w in zip(["Bus Name","kV","Zone","PSSE Name","PSSE #","Resource Node"], col_w):
+            pdf.cell(w, 7, h, border=1, fill=True)
+        pdf.ln()
+        pdf.set_font("Helvetica", "", 8)
+        for _, row in sub_df.head(40).iterrows():
+            for val, w in zip([row["Bus"], row["kV"], row["Zone"],
+                               row["PSSE Name"][:15], row["PSSE #"], row["Resource Node"][:12]], col_w):
+                pdf.cell(w, 6, str(val), border=1)
+            pdf.ln()
+        if len(sub_df) > 40:
+            pdf.set_font("Helvetica", "I", 8)
+            pdf.cell(0, 6, f"  ... and {len(sub_df)-40} more buses", ln=True)
+    if lmp_summary is not None and len(lmp_summary):
+        pdf.add_page()
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_text_color(200, 16, 46)
+        pdf.cell(0, 8, "LMP PRICE ANALYSIS", ln=True)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(30, 30, 30)
+        for col in lmp_summary.columns[:6]:
+            pdf.cell(30, 6, str(col)[:12], border=1, fill=True)
+        pdf.ln()
+        for _, row in lmp_summary.head(20).iterrows():
+            for col in lmp_summary.columns[:6]:
+                pdf.cell(30, 6, str(row[col])[:12], border=1)
+            pdf.ln()
+    pdf.set_y(-20)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(150, 150, 150)
+    pdf.cell(0, 6, "SunStripe Confidential  |  ERCOT Nodal Analysis Platform", align="C")
+    return pdf.output()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Overpass search — mirror fallback chain
+# ═══════════════════════════════════════════════════════════════════
+OVERPASS_MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://overpass.openstreetmap.ru/api/interpreter",
+]
+
+def _parse_overpass_elements(raw_elements, lat, lon):
+    elements = []
+    for el in raw_elements:
+        elat = el.get("lat") or (el.get("center") or {}).get("lat")
+        elon = el.get("lon") or (el.get("center") or {}).get("lon")
+        if not elat or not elon: continue
+        tags = el.get("tags", {})
+        raw_volt = tags.get("voltage", "")
+        try:
+            rv = float(raw_volt.split(";")[0].strip())
+            volt_kv = rv / 1000 if rv > 1000 else rv
+        except:
+            volt_kv = None
+        dist_km = haversine(lat, lon, elat, elon)
+        elements.append({
+            "lat": elat, "lon": elon,
+            "name": tags.get("name", ""),
+            "voltage": raw_volt, "volt_kv": volt_kv,
+            "operator": tags.get("operator", ""),
+            "ref": tags.get("ref", ""),
+            "osm_id": str(el.get("id", "")),
+            "dist_mi": round(dist_km / 1.60934, 2),
+            "dist_km": round(dist_km, 2),
+        })
+    elements.sort(key=lambda x: x["dist_mi"])
+    return elements
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def search_substations_radius(lat, lon, radius_mi):
+    radius_m = int(radius_mi * 1609.34)
+    server_timeout = min(30, max(15, radius_mi))
+    query = f"""[out:json][timeout:{server_timeout}];
+(
+  node["power"="substation"](around:{radius_m},{lat},{lon});
+  way["power"="substation"](around:{radius_m},{lat},{lon});
+  relation["power"="substation"](around:{radius_m},{lat},{lon});
+);
+out center tags;"""
+    last_err = "Unknown error"
+    for mirror in OVERPASS_MIRRORS:
+        try:
+            resp = requests.post(mirror, data={"data": query},
+                timeout=(10, server_timeout + 15),
+                headers={"User-Agent": "SunStripe-ERCOT/1.0", "Accept-Encoding": "gzip"})
+            if resp.status_code == 504:
+                last_err = f"504 on {mirror.split('/')[2]}"; continue
+            resp.raise_for_status()
+            elements = _parse_overpass_elements(resp.json().get("elements", []), lat, lon)
+            return elements, None
+        except requests.exceptions.ConnectTimeout:
+            last_err = f"Connect timeout on {mirror.split('/')[2]}"; continue
+        except requests.exceptions.ReadTimeout:
+            last_err = f"Read timeout on {mirror.split('/')[2]}"; continue
+        except requests.exceptions.HTTPError as e:
+            last_err = f"HTTP {e.response.status_code} on {mirror.split('/')[2]}"; continue
+        except Exception as e:
+            last_err = f"{mirror.split('/')[2]}: {str(e)[:60]}"; continue
+    return [], (f"All Overpass mirrors failed ({last_err}). Try a smaller radius or retry in 1–2 min.")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ERCOT fuzzy match index
+# ═══════════════════════════════════════════════════════════════════
+@st.cache_data(show_spinner=False)
+def build_ercot_search_index():
+    records = []
+    for sub, grp in df.groupby("Substation"):
+        tokens = set()
+        for pn in grp["PSSE Name"].unique():
+            clean = re.sub(r'[^A-Z]', '', pn.upper().split('_')[0])[:12]
+            if len(clean) >= 3: tokens.add(clean)
+        sub_clean = re.sub(r'[^A-Z]', '', sub.upper())
+        if len(sub_clean) >= 3: tokens.add(sub_clean)
+        records.append({"substation": sub, "tokens": tokens,
+                         "kvs": sorted(grp["kV"].unique(), key=lambda x: -float(x) if x else 0),
+                         "bus_count": len(grp)})
+    return records
+
+ercot_index = build_ercot_search_index()
+
+def match_to_ercot(osm_name, osm_voltage_str=""):
+    if not osm_name: return []
+    osm_clean = re.sub(r'[^A-Z0-9 ]', '', osm_name.upper())
+    for pat in [r'\bSUBSTATION\b',r'\bSWITCHING\b',r'\bSTATION\b',r'\bELECTRIC\b',
+                r'\bPOWER\b',r'\bTRANS\b',r'\bSUB\b',r'\bSS\b']:
+        osm_clean = re.sub(pat, '', osm_clean)
+    osm_tokens = [t for t in osm_clean.split() if len(t) >= 3]
+    osm_kv = None
+    try:
+        v_raw = float(re.sub(r'[^0-9.]', '', osm_voltage_str.split(";")[0]))
+        osm_kv = v_raw / 1000 if v_raw > 1000 else v_raw
+    except: pass
+    results = []
+    for rec in ercot_index:
+        score = 0
+        for ot in osm_tokens:
+            for et in rec["tokens"]:
+                if ot == et: score += 20
+                elif ot in et and len(ot) >= 5: score += 12
+                elif et in ot and len(et) >= 5: score += 10
+                elif ot[:5] == et[:5] and len(ot) >= 5: score += 8
+        if osm_kv and score > 0:
+            for kv_str in rec["kvs"]:
+                try:
+                    if abs(float(kv_str) - osm_kv) < 10: score += 15; break
+                except: pass
+        if score >= 8: results.append((rec["substation"], score, rec))
+    results.sort(key=lambda x: -x[1])
+    return results[:6]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ERCOT card renderer
+# ═══════════════════════════════════════════════════════════════════
+def render_ercot_card(sub_name, sub_df):
+    buses     = sub_df["Bus"].tolist()
+    zones     = sub_df["Zone"].unique().tolist()
+    kvs       = sorted(sub_df["kV"].unique(), key=lambda x: -float(x) if x else 0)
+    psse_nums = sub_df["PSSE #"].tolist()
+    rn_list   = sub_df[sub_df["Resource Node"]!=""]["Resource Node"].tolist()
+    hubs      = sub_df[sub_df["Hub"]!=""]["Hub"].unique().tolist()
+    bus_tags  = "".join(f'<span class="tag-bus">{b}</span>' for b in buses[:30])
+    more_b    = f'<span style="color:#9b9b92;font-size:10px">+{len(buses)-30} more</span>' if len(buses)>30 else ""
+    zone_tags = "".join(f'<span class="tag-zone">{z}</span>' for z in zones)
+    psse_tags = "".join(f'<span class="tag-psse">{p}</span>' for p in psse_nums[:20])
+    hub_tags  = "".join(f'<span class="tag-hub">{h}</span>' for h in hubs) if hubs else '<span style="color:#9b9b92;font-size:11px">—</span>'
+    kv_tags   = "".join(f'<span class="kv {kv_cls(k)}">{k} kV</span>' for k in kvs)
+    rn_tags   = "".join(f'<span class="tag-rn">{r}</span>' for r in rn_list[:10])
+    st.markdown(f"""
+    <div class="ercot-card">
+        <h3>{sub_name}</h3>
+        <div class="dg">
+            <div class="di"><div class="dl">Buses</div><div class="dv" style="color:#c8102e;font-weight:700">{len(buses)}</div></div>
+            <div class="di"><div class="dl">Voltage(s)</div><div class="dv">{kv_tags}</div></div>
+            <div class="di"><div class="dl">Zone(s)</div><div class="dv">{zone_tags}</div></div>
+            <div class="di"><div class="dl">Hub(s)</div><div class="dv">{hub_tags}</div></div>
+            <div class="di"><div class="dl">Res. Nodes</div><div class="dv" style="color:#c8102e;font-weight:700">{len(rn_list)}</div></div>
+        </div>
+        <div style="margin-bottom:10px"><div class="dl" style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92;letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px">Bus Names</div><div class="tag-row">{bus_tags}{more_b}</div></div>
+        <div style="margin-bottom:10px"><div class="dl" style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92;letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px">PSSE Numbers</div><div class="tag-row">{psse_tags}</div></div>
+        {'<div><div class="dl" style="font-family:\'DM Mono\',monospace;font-size:9px;color:#9b9b92;letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px">Resource Nodes</div><div class="tag-row">'+rn_tags+'</div></div>' if rn_list else ''}
+    </div>
+    """, unsafe_allow_html=True)
+
+
+
+
 def bess_calc(bdf: pd.DataFrame, half_w: int):
     """
     3-hour centred rolling-average BESS strategy.
