@@ -279,54 +279,61 @@ if page == "📊 DAM Price History":
         n_days = day_map[p_days]
 
         if p_sps and daily_data:
-            # Multi-SP overlay chart
+            has_data = False
             fig = go.Figure()
             for i, sp in enumerate(p_sps):
                 sp_d = daily_data.get(sp, {})
-                if not sp_d: continue
+                if not sp_d or not sp_d.get("d"): continue
+                has_data = True
                 dates = sp_d["d"][-n_days:]
                 avgs = [min(v, p_cap) for v in sp_d["a"][-n_days:]]
                 fig.add_trace(go.Scatter(x=dates, y=avgs, mode="lines", name=sp,
                     line=dict(color=PALETTE[i % len(PALETTE)], width=1.8),
                     hovertemplate=f"{sp}<br>%{{x}}: $%{{y:.2f}}<extra></extra>"))
-            fig.update_layout(
-                title=dict(text="Settlement Point Price — ERCOT — Day Ahead",
-                           font=dict(family="Playfair Display", size=14, color="#1a1a18"), x=0.01),
-                height=420, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
-                font=dict(family="DM Sans", color="#3d3d38", size=11),
-                xaxis=dict(gridcolor="#e2e0db", linecolor="#d0cdc6", tickfont=dict(size=9, color="#6b6b64")),
-                yaxis=dict(gridcolor="#e2e0db", linecolor="#d0cdc6", tickprefix="$",
-                           tickfont=dict(size=10, color="#6b6b64"), range=[0, p_cap]),
-                legend=dict(bgcolor="rgba(247,247,245,0.95)", bordercolor="#e2e0db", borderwidth=1,
-                            font=dict(size=9), orientation="h", yanchor="bottom", y=1.02, x=0),
-                margin=dict(l=55, r=20, t=60, b=40), hovermode="x unified")
-            st.plotly_chart(fig, use_container_width=True)
 
-            # Individual SP bar charts in grid
-            st.markdown('<div class="section-label">Individual Settlement Points — LMP</div>', unsafe_allow_html=True)
-            n_cols = min(3, len(p_sps))
-            for row_start in range(0, len(p_sps), n_cols):
-                cols = st.columns(n_cols)
-                for ci, sp in enumerate(p_sps[row_start:row_start + n_cols]):
-                    with cols[ci]:
-                        sp_d = daily_data.get(sp, {})
-                        if not sp_d: continue
-                        dates = sp_d["d"][-n_days:]
-                        avgs = sp_d["a"][-n_days:]
-                        fig_s = go.Figure()
-                        fig_s.add_trace(go.Bar(x=dates, y=avgs, marker_color="#c8102e",
-                            hovertemplate="$%{y:.2f}<extra></extra>"))
-                        avg_val = np.mean(avgs)
-                        fig_s.add_hline(y=avg_val, line_dash="dash", line_color="#6b6b64", line_width=1,
-                            annotation_text=f"Avg ${avg_val:.0f}", annotation_font=dict(size=9, color="#6b6b64"))
-                        fig_s.update_layout(
-                            title=dict(text=f"{sp} — LMP", font=dict(family="DM Sans", size=12, color="#1a1a18")),
-                            height=220, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
-                            margin=dict(l=40, r=10, t=35, b=25),
-                            xaxis=dict(gridcolor="#e2e0db", showticklabels=False),
-                            yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=9, color="#6b6b64")),
-                            showlegend=False)
-                        st.plotly_chart(fig_s, use_container_width=True)
+            if not has_data:
+                st.warning("⚠️ Daily data not found in dam_historical.json. Make sure the file is the **updated version (659 KB)**, not the old one (72 KB). Then go to ☰ Menu → Settings → **Clear Cache** and reload.")
+            else:
+                fig.update_layout(
+                    title=dict(text="Settlement Point Price — ERCOT — Day Ahead",
+                               font=dict(family="Playfair Display", size=14, color="#1a1a18"), x=0.01),
+                    height=420, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                    font=dict(family="DM Sans", color="#3d3d38", size=11),
+                    xaxis=dict(gridcolor="#e2e0db", linecolor="#d0cdc6", tickfont=dict(size=9, color="#6b6b64")),
+                    yaxis=dict(gridcolor="#e2e0db", linecolor="#d0cdc6", tickprefix="$",
+                               tickfont=dict(size=10, color="#6b6b64"), range=[0, p_cap]),
+                    legend=dict(bgcolor="rgba(247,247,245,0.95)", bordercolor="#e2e0db", borderwidth=1,
+                                font=dict(size=9), orientation="h", yanchor="bottom", y=1.02, x=0),
+                    margin=dict(l=55, r=20, t=60, b=40), hovermode="x unified")
+                st.plotly_chart(fig, use_container_width=True)
+
+                # Individual SP bar charts in grid
+                st.markdown('<div class="section-label">Individual Settlement Points — LMP</div>', unsafe_allow_html=True)
+                n_cols = min(3, len(p_sps))
+                for row_start in range(0, len(p_sps), n_cols):
+                    cols = st.columns(n_cols)
+                    for ci, sp in enumerate(p_sps[row_start:row_start + n_cols]):
+                        with cols[ci]:
+                            sp_d = daily_data.get(sp, {})
+                            if not sp_d or not sp_d.get("d"): continue
+                            dates = sp_d["d"][-n_days:]
+                            avgs = sp_d["a"][-n_days:]
+                            fig_s = go.Figure()
+                            fig_s.add_trace(go.Bar(x=dates, y=avgs, marker_color="#c8102e",
+                                hovertemplate="$%{y:.2f}<extra></extra>"))
+                            avg_val = np.mean(avgs)
+                            fig_s.add_hline(y=avg_val, line_dash="dash", line_color="#6b6b64", line_width=1,
+                                annotation_text=f"Avg ${avg_val:.0f}", annotation_font=dict(size=9, color="#6b6b64"))
+                            fig_s.update_layout(
+                                title=dict(text=f"{sp} — LMP", font=dict(family="DM Sans", size=12, color="#1a1a18")),
+                                height=220, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                                margin=dict(l=40, r=10, t=35, b=25),
+                                xaxis=dict(gridcolor="#e2e0db", showticklabels=False),
+                                yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=9, color="#6b6b64")),
+                                showlegend=False)
+                            st.plotly_chart(fig_s, use_container_width=True)
+        elif p_sps:
+            st.warning("⚠️ Daily data not found. Make sure dam_historical.json is the updated 659 KB version. Clear cache and reload.")
 
     # ══════════════════════════════════════════════════════════════
     # TAB: TRENDS — Monthly bars + line overlay + YoY comparison
@@ -342,6 +349,25 @@ if page == "📊 DAM Price History":
             t_cap = st.checkbox("Cap $200", key="tr_cap")
 
         sp_md = monthly_det.get(t_sp, {}).get(str(t_yr), {})
+
+        # Fallback: if monthly_detail is empty (old JSON cached), build from monthly data
+        if not sp_md or not sp_md.get("months"):
+            sp_m = dam.get("monthly", {}).get(t_sp, {})
+            if sp_m and sp_m.get("year"):
+                fb_months, fb_avgs = [], []
+                for j in range(len(sp_m["year"])):
+                    if sp_m["year"][j] == t_yr:
+                        fb_months.append(sp_m["month"][j])
+                        fb_avgs.append(sp_m["avg"][j])
+                if fb_months:
+                    sp_md = {
+                        "months": fb_months,
+                        "avg": fb_avgs,
+                        "mx": fb_avgs,  # no max data in old format, use avg
+                        "mn": fb_avgs,  # same
+                        "std": [0]*len(fb_avgs),
+                    }
+
         if sp_md and sp_md.get("months"):
             months_list = sp_md["months"]
             avgs = sp_md["avg"]
