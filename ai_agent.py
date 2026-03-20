@@ -227,12 +227,6 @@ with st.sidebar:
               border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;
               color:rgba(255,255,255,0.6);text-decoration:none;margin-bottom:6px">
         <span>⚡ Nodal Analyser</span><span style="opacity:.4">↗</span></a>
-    <a href="https://ercot-bess-dashboard-nhh9eztsqeuqxxuz97kacu.streamlit.app/" target="_blank"
-       style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;
-              background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
-              border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;
-              color:rgba(255,255,255,0.6);text-decoration:none;margin-bottom:6px">
-        <span>🔋 BESS Dashboard</span><span style="opacity:.4">↗</span></a>
     <a href="https://fatal-flaw-o7aks4agtoffgyydbvrguj.streamlit.app/" target="_blank"
        style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;
               background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
