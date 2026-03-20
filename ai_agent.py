@@ -245,6 +245,10 @@ with st.sidebar:
 # ═══════════════════════════════════════════════════════════════════
 # PAGE 1: DAM PRICE HISTORY
 # ═══════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════
+# PAGE 1: DAM PRICE HISTORY — Dashboard-style charts
+# ═══════════════════════════════════════════════════════════════════
 if page == "📊 DAM Price History":
     st.markdown("""<div class="page-header">
         <div><div class="tag">Historical Intelligence · 2010–2025</div>
@@ -254,262 +258,276 @@ if page == "📊 DAM Price History":
 
     dam = load_dam_historical()
     years, sps, hubs, lzs = dam["years"], dam["sps"], dam["hubs"], dam["lzs"]
+    daily_data = dam.get("daily", {})
+    hourly_prof = dam.get("hourly_profile", {})
+    monthly_det = dam.get("monthly_detail", {})
 
-    tab_trend, tab_yearly, tab_monthly, tab_compare, tab_heatmap, tab_vol = st.tabs([
-        "📈 Price Trends", "📅 Yearly Graph (Jan–Dec)", "📊 Monthly Averages",
-        "⚖️ Zone Comparison", "🗓️ Monthly Heatmap", "🔥 Volatility & Spikes"])
+    tab_pricing, tab_trends, tab_intraday, tab_compare, tab_heatmap, tab_vol = st.tabs([
+        "⚡ Pricing", "📊 Trends", "🕐 Intraday Profiles",
+        "⚖️ Zone Comparison", "🗓️ Heatmap", "🔥 Volatility"])
 
-    with tab_trend:
-        c1, c2, c3 = st.columns([3, 1, 1])
-        with c1:
-            sel_sps = st.multiselect("Settlement Points", sps, default=["HB_HUBAVG"], key="t_sps")
-        with c2:
-            metric = st.selectbox("Metric", ["Average","Std Dev","Max","Min"], key="t_met")
-        with c3:
-            cap = st.checkbox("Cap $200", key="t_cap")
-        mkey = {"Average":"avg","Std Dev":"std","Max":"max","Min":"min"}[metric]
+    # ══════════════════════════════════════════════════════════════
+    # TAB: PRICING — Daily bars + multi-SP overlay
+    # ══════════════════════════════════════════════════════════════
+    with tab_pricing:
+        st.markdown('<div class="section-label">Settlement Point Prices — Daily View</div>', unsafe_allow_html=True)
+        pc1, pc2, pc3 = st.columns([3, 1, 1])
+        with pc1:
+            p_sps = st.multiselect("Settlement Points", sps,
+                default=["HB_BUSAVG","HB_HOUSTON","HB_HUBAVG","HB_NORTH","HB_SOUTH","HB_WEST","LZ_HOUSTON","LZ_NORTH"],
+                key="p_sps")
+        with pc2:
+            p_days = st.selectbox("Period", ["Last 30 days","Last 90 days","Last 180 days","Last 365 days","All (2023–2025)"], key="p_days")
+        with pc3:
+            p_cap = st.number_input("Y-axis cap $", value=200, min_value=50, max_value=9000, step=50, key="p_cap")
 
-        if sel_sps:
+        day_map = {"Last 30 days":30,"Last 90 days":90,"Last 180 days":180,"Last 365 days":365,"All (2023–2025)":9999}
+        n_days = day_map[p_days]
+
+        if p_sps and daily_data:
+            # Multi-SP overlay chart
             fig = go.Figure()
-            for i, sp in enumerate(sel_sps):
-                d = dam["yearly"].get(sp, {})
-                if not d: continue
-                vals = [min(v, 200) for v in d[mkey]] if cap else d[mkey]
-                fig.add_trace(go.Scatter(x=d["years"], y=vals, mode="lines+markers", name=sp,
-                    line=dict(color=PALETTE[i%len(PALETTE)], width=2.5), marker=dict(size=5),
+            for i, sp in enumerate(p_sps):
+                sp_d = daily_data.get(sp, {})
+                if not sp_d: continue
+                dates = sp_d["d"][-n_days:]
+                avgs = [min(v, p_cap) for v in sp_d["a"][-n_days:]]
+                fig.add_trace(go.Scatter(x=dates, y=avgs, mode="lines", name=sp,
+                    line=dict(color=PALETTE[i % len(PALETTE)], width=1.8),
                     hovertemplate=f"{sp}<br>%{{x}}: $%{{y:.2f}}<extra></extra>"))
-            lay = ss_layout(f"Yearly {metric} DAM Price", 420)
-            lay["xaxis"]["dtick"] = 1
-            fig.update_layout(**lay)
+            fig.update_layout(
+                title=dict(text="Settlement Point Price — ERCOT — Day Ahead",
+                           font=dict(family="Playfair Display", size=14, color="#1a1a18"), x=0.01),
+                height=420, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                font=dict(family="DM Sans", color="#3d3d38", size=11),
+                xaxis=dict(gridcolor="#e2e0db", linecolor="#d0cdc6", tickfont=dict(size=9, color="#6b6b64")),
+                yaxis=dict(gridcolor="#e2e0db", linecolor="#d0cdc6", tickprefix="$",
+                           tickfont=dict(size=10, color="#6b6b64"), range=[0, p_cap]),
+                legend=dict(bgcolor="rgba(247,247,245,0.95)", bordercolor="#e2e0db", borderwidth=1,
+                            font=dict(size=9), orientation="h", yanchor="bottom", y=1.02, x=0),
+                margin=dict(l=55, r=20, t=60, b=40), hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
-            rows = []
-            for sp in sel_sps:
-                d = dam["yearly"].get(sp, {})
-                if not d: continue
-                rows.append({"SP": sp, "Avg $/MWh": round(np.mean(d["avg"]),2),
-                    "Peak Year": d["years"][np.argmax(d["avg"])],
-                    "Peak Avg": round(max(d["avg"]),2),
-                    "Low Year": d["years"][np.argmin(d["avg"])],
-                    "Low Avg": round(min(d["avg"]),2),
-                    "All-Time Max": f"${max(d['max']):,.0f}",
-                    "All-Time Min": f"${min(d['min']):.2f}"})
-            if rows:
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            # Individual SP bar charts in grid
+            st.markdown('<div class="section-label">Individual Settlement Points — LMP</div>', unsafe_allow_html=True)
+            n_cols = min(3, len(p_sps))
+            for row_start in range(0, len(p_sps), n_cols):
+                cols = st.columns(n_cols)
+                for ci, sp in enumerate(p_sps[row_start:row_start + n_cols]):
+                    with cols[ci]:
+                        sp_d = daily_data.get(sp, {})
+                        if not sp_d: continue
+                        dates = sp_d["d"][-n_days:]
+                        avgs = sp_d["a"][-n_days:]
+                        fig_s = go.Figure()
+                        fig_s.add_trace(go.Bar(x=dates, y=avgs, marker_color="#c8102e",
+                            hovertemplate="$%{y:.2f}<extra></extra>"))
+                        avg_val = np.mean(avgs)
+                        fig_s.add_hline(y=avg_val, line_dash="dash", line_color="#6b6b64", line_width=1,
+                            annotation_text=f"Avg ${avg_val:.0f}", annotation_font=dict(size=9, color="#6b6b64"))
+                        fig_s.update_layout(
+                            title=dict(text=f"{sp} — LMP", font=dict(family="DM Sans", size=12, color="#1a1a18")),
+                            height=220, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                            margin=dict(l=40, r=10, t=35, b=25),
+                            xaxis=dict(gridcolor="#e2e0db", showticklabels=False),
+                            yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=9, color="#6b6b64")),
+                            showlegend=False)
+                        st.plotly_chart(fig_s, use_container_width=True)
 
     # ══════════════════════════════════════════════════════════════
-    # TAB: YEARLY GRAPH (Jan–Dec for a selected year)
+    # TAB: TRENDS — Monthly bars + line overlay + YoY comparison
     # ══════════════════════════════════════════════════════════════
-    with tab_yearly:
-        st.markdown('<div class="section-label">Select Year & Settlement Points</div>', unsafe_allow_html=True)
-        yc1, yc2, yc3 = st.columns([2, 3, 1])
-        with yc1:
-            sel_yr = st.select_slider("Year", options=years, value=years[-2], key="yg_year")
-        with yc2:
-            yg_sps = st.multiselect("Settlement Points", sps, default=["HB_HUBAVG","HB_HOUSTON","HB_NORTH","HB_SOUTH","HB_WEST"], key="yg_sps")
-        with yc3:
-            yg_cap = st.checkbox("Cap $200", key="yg_cap")
+    with tab_trends:
+        st.markdown('<div class="section-label">Select Year & Settlement Point</div>', unsafe_allow_html=True)
+        tc1, tc2, tc3 = st.columns([2, 2, 1])
+        with tc1:
+            t_sp = st.selectbox("Settlement Point", sps, index=sps.index("HB_HUBAVG"), key="tr_sp")
+        with tc2:
+            t_yr = st.select_slider("Year", options=years, value=years[-2], key="tr_yr")
+        with tc3:
+            t_cap = st.checkbox("Cap $200", key="tr_cap")
 
-        if yg_sps:
+        sp_md = monthly_det.get(t_sp, {}).get(str(t_yr), {})
+        if sp_md and sp_md.get("months"):
+            months_list = sp_md["months"]
+            avgs = sp_md["avg"]
+            maxs = sp_md["mx"]
+            mins = sp_md["mn"]
+            stds = sp_md["std"]
+            month_labels = [MONTHS[m-1] for m in months_list]
+            if t_cap:
+                avgs = [min(v, 200) for v in avgs]
+                maxs = [min(v, 200) for v in maxs]
+
+            # Monthly bars + trend line
             fig = go.Figure()
-            for i, sp in enumerate(yg_sps):
-                sp_m = dam["monthly"].get(sp, {})
-                if not sp_m: continue
-                # Extract months for this year
-                yr_months = []
-                yr_avgs = []
-                for j in range(len(sp_m["year"])):
-                    if sp_m["year"][j] == sel_yr:
-                        yr_months.append(sp_m["month"][j])
-                        val = sp_m["avg"][j]
-                        yr_avgs.append(min(val, 200) if yg_cap else val)
-                if not yr_months: continue
-                month_labels = [MONTHS[m-1] for m in yr_months]
-                fig.add_trace(go.Scatter(
-                    x=month_labels, y=yr_avgs, mode="lines+markers", name=sp,
-                    line=dict(color=PALETTE[i % len(PALETTE)], width=2.5),
-                    marker=dict(size=7),
-                    hovertemplate=f"{sp}<br>%{{x}} {sel_yr}: $%{{y:.2f}}/MWh<extra></extra>"
-                ))
-
-            # Add average line
-            all_vals = []
-            for sp in yg_sps:
-                sp_m = dam["monthly"].get(sp, {})
-                if not sp_m: continue
-                for j in range(len(sp_m["year"])):
-                    if sp_m["year"][j] == sel_yr:
-                        all_vals.append(sp_m["avg"][j])
-            if all_vals:
-                overall_avg = np.mean(all_vals)
-                fig.add_hline(y=overall_avg, line_dash="dash", line_color="rgba(100,100,100,0.5)",
-                    annotation_text=f"Avg ${overall_avg:.2f}", annotation_font=dict(color="#6b6b64", size=10))
-
-            lay = ss_layout(f"{sel_yr} — Monthly Average DAM Price (Jan → Dec)", 440)
-            lay["xaxis"]["categoryorder"] = "array"
-            lay["xaxis"]["categoryarray"] = MONTHS
-            fig.update_layout(**lay)
+            fig.add_trace(go.Bar(x=month_labels, y=avgs, name="Monthly Avg",
+                marker_color="#c8102e", opacity=0.85,
+                hovertemplate="%{x}: $%{y:.2f}/MWh<extra></extra>"))
+            overall_avg = np.mean(avgs)
+            fig.add_trace(go.Scatter(x=month_labels, y=avgs, mode="lines+markers",
+                name="Trend", line=dict(color="#ffffff", width=2.5),
+                marker=dict(size=6, color="#ffffff", line=dict(color="#c8102e", width=1.5))))
+            fig.add_hline(y=overall_avg, line_dash="dash", line_color="#6b6b64",
+                annotation_text=f"Annual Avg ${overall_avg:.2f}",
+                annotation_font=dict(size=10, color="#6b6b64"))
+            fig.update_layout(
+                title=dict(text=f"{t_sp} — {t_yr} Monthly Average DAM Price",
+                           font=dict(family="Playfair Display", size=14, color="#1a1a18"), x=0.01),
+                height=420, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                font=dict(family="DM Sans", color="#3d3d38", size=11),
+                xaxis=dict(gridcolor="#e2e0db", categoryorder="array", categoryarray=MONTHS,
+                           tickfont=dict(size=11, color="#6b6b64")),
+                yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=10, color="#6b6b64")),
+                legend=dict(bgcolor="rgba(247,247,245,0.95)", bordercolor="#e2e0db", borderwidth=1),
+                margin=dict(l=55, r=20, t=50, b=40))
             st.plotly_chart(fig, use_container_width=True)
 
-            # Stats table for this year
-            st.markdown(f'<div class="section-label">{sel_yr} Monthly Summary</div>', unsafe_allow_html=True)
-            rows = []
-            for sp in yg_sps:
-                sp_m = dam["monthly"].get(sp, {})
-                if not sp_m: continue
-                yr_vals = [sp_m["avg"][j] for j in range(len(sp_m["year"])) if sp_m["year"][j] == sel_yr]
-                yr_mos = [sp_m["month"][j] for j in range(len(sp_m["year"])) if sp_m["year"][j] == sel_yr]
-                if not yr_vals: continue
-                peak_mo = yr_mos[np.argmax(yr_vals)]
-                low_mo = yr_mos[np.argmin(yr_vals)]
-                rows.append({
-                    "Settlement Point": sp,
-                    "Annual Avg ($/MWh)": round(np.mean(yr_vals), 2),
-                    "Peak Month": MONTHS[peak_mo - 1],
-                    "Peak ($/MWh)": round(max(yr_vals), 2),
-                    "Lowest Month": MONTHS[low_mo - 1],
-                    "Low ($/MWh)": round(min(yr_vals), 2),
-                    "Spread": round(max(yr_vals) - min(yr_vals), 2),
-                })
-            if rows:
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            # Min/Max range + Volatility side by side
+            c1, c2 = st.columns(2)
+            with c1:
+                fig2 = go.Figure()
+                fig2.add_trace(go.Scatter(x=month_labels+month_labels[::-1],
+                    y=maxs+mins[::-1], fill="toself", fillcolor="rgba(200,16,46,0.12)",
+                    line=dict(color="rgba(0,0,0,0)"), name="Min–Max Range"))
+                fig2.add_trace(go.Scatter(x=month_labels, y=avgs, mode="lines+markers",
+                    name="Average", line=dict(color="#c8102e", width=2.5), marker=dict(size=5)))
+                fig2.update_layout(
+                    title=dict(text=f"Price Range — {t_yr}", font=dict(family="DM Sans", size=12)),
+                    height=300, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                    xaxis=dict(gridcolor="#e2e0db", categoryorder="array", categoryarray=MONTHS),
+                    yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=9, color="#6b6b64")),
+                    margin=dict(l=50, r=15, t=35, b=30),
+                    legend=dict(bgcolor="rgba(247,247,245,0.95)", font=dict(size=9)))
+                st.plotly_chart(fig2, use_container_width=True)
+            with c2:
+                fig3 = go.Figure()
+                fig3.add_trace(go.Bar(x=month_labels, y=stds, name="Std Dev",
+                    marker=dict(color=stds, colorscale=[[0,"#1a6a1a"],[0.3,"#e9c46a"],[1,"#c8102e"]])))
+                fig3.update_layout(
+                    title=dict(text=f"Monthly Volatility — {t_yr}", font=dict(family="DM Sans", size=12)),
+                    height=300, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                    xaxis=dict(gridcolor="#e2e0db", categoryorder="array", categoryarray=MONTHS),
+                    yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=9, color="#6b6b64")),
+                    margin=dict(l=50, r=15, t=35, b=30), showlegend=False)
+                st.plotly_chart(fig3, use_container_width=True)
 
-            # Compare multiple years overlay
-            with st.expander("Compare Multiple Years"):
-                cmp_years = st.multiselect("Select years to overlay", years,
-                    default=[y for y in [2022, 2023, 2024] if y in years], key="yg_cmp_years")
-                cmp_sp = st.selectbox("Settlement Point", yg_sps, key="yg_cmp_sp")
-                if cmp_years and cmp_sp:
-                    fig2 = go.Figure()
-                    sp_m = dam["monthly"].get(cmp_sp, {})
-                    if sp_m:
-                        for yi, cy in enumerate(sorted(cmp_years)):
-                            mo_vals = {}
-                            for j in range(len(sp_m["year"])):
-                                if sp_m["year"][j] == cy:
-                                    mo_vals[sp_m["month"][j]] = sp_m["avg"][j]
-                            if not mo_vals: continue
-                            ms = sorted(mo_vals.keys())
-                            fig2.add_trace(go.Scatter(
-                                x=[MONTHS[m-1] for m in ms],
-                                y=[mo_vals[m] for m in ms],
-                                mode="lines+markers", name=str(cy),
-                                line=dict(color=PALETTE[yi % len(PALETTE)], width=2),
-                                marker=dict(size=5),
-                                hovertemplate=f"{cy}<br>%{{x}}: $%{{y:.2f}}<extra></extra>"
-                            ))
-                    lay2 = ss_layout(f"{cmp_sp} — Year-over-Year Comparison", 380)
-                    lay2["xaxis"]["categoryorder"] = "array"
-                    lay2["xaxis"]["categoryarray"] = MONTHS
-                    fig2.update_layout(**lay2)
-                    st.plotly_chart(fig2, use_container_width=True)
+            # Year-over-Year
+            st.markdown('<div class="section-label">Year-over-Year Comparison</div>', unsafe_allow_html=True)
+            yoy_years = st.multiselect("Compare years", years,
+                default=[y for y in [2022, 2023, 2024, 2025] if y in years], key="tr_yoy")
+            if yoy_years:
+                fig4 = go.Figure()
+                for yi, cy in enumerate(sorted(yoy_years)):
+                    cy_d = monthly_det.get(t_sp, {}).get(str(cy), {})
+                    if cy_d and cy_d.get("months"):
+                        ml = [MONTHS[m-1] for m in cy_d["months"]]
+                        av = [min(v, 200) for v in cy_d["avg"]] if t_cap else cy_d["avg"]
+                        fig4.add_trace(go.Scatter(x=ml, y=av, mode="lines+markers", name=str(cy),
+                            line=dict(color=PALETTE[yi % len(PALETTE)], width=2.5), marker=dict(size=5)))
+                fig4.update_layout(
+                    title=dict(text=f"{t_sp} — Year-over-Year",
+                               font=dict(family="Playfair Display", size=14, color="#1a1a18"), x=0.01),
+                    height=400, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                    xaxis=dict(gridcolor="#e2e0db", categoryorder="array", categoryarray=MONTHS),
+                    yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=10, color="#6b6b64")),
+                    legend=dict(bgcolor="rgba(247,247,245,0.95)", bordercolor="#e2e0db", borderwidth=1),
+                    margin=dict(l=55, r=20, t=50, b=40), hovermode="x unified")
+                st.plotly_chart(fig4, use_container_width=True)
         else:
-            st.info("Select settlement points above to see the yearly graph.")
+            st.warning(f"No monthly data for {t_sp} in {t_yr}")
 
     # ══════════════════════════════════════════════════════════════
-    # TAB: MONTHLY AVERAGES (average of each month across all years)
+    # TAB: INTRADAY — Hourly profiles, multi-SP spaghetti plots
     # ══════════════════════════════════════════════════════════════
-    with tab_monthly:
-        st.markdown('<div class="section-label">Average Price by Month (All Years Combined)</div>', unsafe_allow_html=True)
-        mc1, mc2, mc3 = st.columns([3, 1, 1])
-        with mc1:
-            ma_sps = st.multiselect("Settlement Points", sps,
-                default=["HB_HUBAVG","HB_HOUSTON","HB_NORTH","HB_SOUTH","HB_WEST","LZ_WEST"], key="ma_sps")
-        with mc2:
-            ma_excl_uri = st.checkbox("Exclude Feb 2021 (Uri)", value=True, key="ma_excl")
-        with mc3:
-            ma_years_from = st.select_slider("From year", options=years, value=years[0], key="ma_from")
+    with tab_intraday:
+        st.markdown('<div class="section-label">Hourly Price Profile by Year</div>', unsafe_allow_html=True)
+        ic1, ic2 = st.columns([3, 2])
+        with ic1:
+            i_sps = st.multiselect("Settlement Points", sps,
+                default=["HB_BUSAVG","HB_HOUSTON","HB_HUBAVG","HB_NORTH","HB_SOUTH","HB_WEST","LZ_HOUSTON","LZ_NORTH","LZ_SOUTH","LZ_WEST"],
+                key="i_sps")
+        with ic2:
+            i_yr = st.select_slider("Year", options=years, value=years[-2], key="i_yr")
 
-        if ma_sps:
+        hours = list(range(1, 25))
+        hr_ticks = ["12a","","","3a","","","6a","","","9a","","","12p","","","3p","","","6p","","","9p","","","12a"]
+
+        if i_sps and hourly_prof:
+            # Multi-SP overlay — spaghetti plot
             fig = go.Figure()
-            table_rows = []
-            for i, sp in enumerate(ma_sps):
-                sp_m = dam["monthly"].get(sp, {})
-                if not sp_m: continue
-                # Group by month, compute average across all years
-                monthly_buckets = [[] for _ in range(12)]
-                for j in range(len(sp_m["year"])):
-                    yr = sp_m["year"][j]
-                    mo = sp_m["month"][j]
-                    val = sp_m["avg"][j]
-                    if yr < ma_years_from: continue
-                    if ma_excl_uri and yr == 2021 and mo == 2: continue
-                    monthly_buckets[mo - 1].append(val)
-                month_avgs = [round(np.mean(b), 2) if b else None for b in monthly_buckets]
-                month_avgs_clean = [v if v is not None else 0 for v in month_avgs]
-
-                fig.add_trace(go.Scatter(
-                    x=MONTHS, y=month_avgs_clean, mode="lines+markers", name=sp,
-                    line=dict(color=PALETTE[i % len(PALETTE)], width=2.5),
-                    marker=dict(size=7),
-                    hovertemplate=f"{sp}<br>%{{x}}: $%{{y:.2f}}/MWh<extra></extra>"
-                ))
-
-                # Table data
-                peak_mo = np.argmax(month_avgs_clean)
-                low_mo = np.argmin(month_avgs_clean)
-                table_rows.append({
-                    "Settlement Point": sp,
-                    "Overall Avg": f"${np.mean(month_avgs_clean):.2f}",
-                    "Peak Month": MONTHS[peak_mo],
-                    "Peak Avg": f"${month_avgs_clean[peak_mo]:.2f}",
-                    "Lowest Month": MONTHS[low_mo],
-                    "Low Avg": f"${month_avgs_clean[low_mo]:.2f}",
-                    "Seasonal Spread": f"${month_avgs_clean[peak_mo] - month_avgs_clean[low_mo]:.2f}",
-                })
-
-            lay = ss_layout(f"Average Monthly DAM Price — {ma_years_from}–2025" +
-                (" (excl. Uri)" if ma_excl_uri else ""), 440)
-            lay["xaxis"]["categoryorder"] = "array"
-            lay["xaxis"]["categoryarray"] = MONTHS
-            fig.update_layout(**lay)
+            for i, sp in enumerate(i_sps):
+                sp_hp = hourly_prof.get(sp, {}).get(str(i_yr), [])
+                if not sp_hp: continue
+                fig.add_trace(go.Scatter(x=hours, y=sp_hp, mode="lines", name=sp,
+                    line=dict(color=PALETTE[i % len(PALETTE)], width=2),
+                    hovertemplate=f"{sp}<br>Hr %{{x}}: $%{{y:.2f}}<extra></extra>"))
+            fig.update_layout(
+                title=dict(text=f"Avg Hourly DAM Price — All Settlement Points — {i_yr}",
+                           font=dict(family="Playfair Display", size=14, color="#1a1a18"), x=0.01),
+                height=440, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                font=dict(family="DM Sans", color="#3d3d38", size=11),
+                xaxis=dict(gridcolor="#e2e0db", dtick=1, title="Hour Ending",
+                           ticktext=hr_ticks, tickvals=hours, tickfont=dict(size=9, color="#6b6b64")),
+                yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=10, color="#6b6b64")),
+                legend=dict(bgcolor="rgba(247,247,245,0.95)", bordercolor="#e2e0db", borderwidth=1,
+                            font=dict(size=9), orientation="h", yanchor="bottom", y=1.02, x=0),
+                margin=dict(l=55, r=20, t=60, b=40), hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
-            # Bar chart version — grouped by month
-            st.markdown('<div class="section-label">Monthly Comparison (Bar Chart)</div>', unsafe_allow_html=True)
-            fig2 = go.Figure()
-            for i, sp in enumerate(ma_sps):
-                sp_m = dam["monthly"].get(sp, {})
-                if not sp_m: continue
-                monthly_buckets = [[] for _ in range(12)]
-                for j in range(len(sp_m["year"])):
-                    yr = sp_m["year"][j]
-                    mo = sp_m["month"][j]
-                    val = sp_m["avg"][j]
-                    if yr < ma_years_from: continue
-                    if ma_excl_uri and yr == 2021 and mo == 2: continue
-                    monthly_buckets[mo - 1].append(val)
-                month_avgs = [round(np.mean(b), 2) if b else 0 for b in monthly_buckets]
-                fig2.add_trace(go.Bar(
-                    x=MONTHS, y=month_avgs, name=sp,
-                    marker_color=PALETTE[i % len(PALETTE)],
-                    hovertemplate=f"{sp}<br>%{{x}}: $%{{y:.2f}}/MWh<extra></extra>"
-                ))
-            lay2 = ss_layout("Monthly Average by Settlement Point", 380)
-            lay2["barmode"] = "group"
-            lay2["xaxis"]["categoryorder"] = "array"
-            lay2["xaxis"]["categoryarray"] = MONTHS
-            fig2.update_layout(**lay2)
-            st.plotly_chart(fig2, use_container_width=True)
+            # Individual SP charts in grid
+            st.markdown('<div class="section-label">Individual Settlement Points — Hourly Profile</div>', unsafe_allow_html=True)
+            n_cols = min(3, len(i_sps))
+            for row_start in range(0, len(i_sps), n_cols):
+                cols = st.columns(n_cols)
+                for ci, sp in enumerate(i_sps[row_start:row_start + n_cols]):
+                    with cols[ci]:
+                        sp_hp = hourly_prof.get(sp, {}).get(str(i_yr), [])
+                        if not sp_hp: continue
+                        c_hex = PALETTE[(row_start+ci) % len(PALETTE)]
+                        r_v, g_v, b_v = int(c_hex[1:3],16), int(c_hex[3:5],16), int(c_hex[5:7],16)
+                        fig_s = go.Figure()
+                        fig_s.add_trace(go.Scatter(x=hours, y=sp_hp, mode="lines",
+                            line=dict(color=c_hex, width=2),
+                            fill="tozeroy", fillcolor=f"rgba({r_v},{g_v},{b_v},0.08)"))
+                        fig_s.update_layout(
+                            title=dict(text=sp, font=dict(family="DM Sans", size=11, color="#1a1a18")),
+                            height=200, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                            margin=dict(l=40, r=10, t=30, b=25),
+                            xaxis=dict(gridcolor="#e2e0db", dtick=6,
+                                       ticktext=["6a","12p","6p","12a"], tickvals=[6,12,18,24]),
+                            yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=8, color="#6b6b64")),
+                            showlegend=False)
+                        st.plotly_chart(fig_s, use_container_width=True)
 
-            # Summary table
-            if table_rows:
-                st.markdown('<div class="section-label">Seasonal Summary</div>', unsafe_allow_html=True)
-                st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+            # Year-over-year intraday comparison
+            st.markdown('<div class="section-label">Intraday Year-over-Year</div>', unsafe_allow_html=True)
+            ioy_sp = st.selectbox("Settlement Point", i_sps, key="ioy_sp")
+            ioy_yrs = st.multiselect("Compare years", years,
+                default=[y for y in [2020, 2022, 2024, 2025] if y in years], key="ioy_yrs")
+            if ioy_sp and ioy_yrs:
+                fig5 = go.Figure()
+                for yi, cy in enumerate(sorted(ioy_yrs)):
+                    sp_hp = hourly_prof.get(ioy_sp, {}).get(str(cy), [])
+                    if not sp_hp: continue
+                    is_latest = (cy == max(ioy_yrs))
+                    fig5.add_trace(go.Scatter(x=hours, y=sp_hp, mode="lines", name=str(cy),
+                        line=dict(color=PALETTE[yi % len(PALETTE)], width=3 if is_latest else 1.5),
+                        opacity=1.0 if is_latest else 0.6))
+                fig5.update_layout(
+                    title=dict(text=f"{ioy_sp} — Intraday Profile Comparison",
+                               font=dict(family="Playfair Display", size=14, color="#1a1a18"), x=0.01),
+                    height=380, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                    xaxis=dict(gridcolor="#e2e0db", dtick=1, ticktext=hr_ticks, tickvals=hours,
+                               tickfont=dict(size=9, color="#6b6b64")),
+                    yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=10, color="#6b6b64")),
+                    legend=dict(bgcolor="rgba(247,247,245,0.95)", bordercolor="#e2e0db", borderwidth=1),
+                    margin=dict(l=55, r=20, t=50, b=40), hovermode="x unified")
+                st.plotly_chart(fig5, use_container_width=True)
 
-            # Insight card
-            st.markdown("""<div class="ercot-card" style="border-left-color:#b8860b"><h3>Seasonal Pattern</h3>
-            <div style="font-size:13px;color:#3d3d38;line-height:1.7">
-            ERCOT prices follow a strong seasonal curve driven by <b style="color:#c8102e">summer cooling demand</b>
-            (Jun–Sep peaks) and occasional <b style="color:#1a3a7a">winter heating spikes</b> (Jan–Feb).
-            Spring and fall shoulder months (Mar–May, Oct–Nov) consistently offer the lowest prices — ideal for
-            <b style="color:#1a6a1a">battery charging and load shifting</b>. The summer premium varies by zone:
-            LZ_WEST and LZ_SOUTH typically see the highest seasonal spreads due to transmission constraints
-            and localized generation patterns.
-            </div></div>""", unsafe_allow_html=True)
-        else:
-            st.info("Select settlement points above to see monthly averages.")
-
+    # ══════════════════════════════════════════════════════════════
+    # TAB: ZONE COMPARISON
+    # ══════════════════════════════════════════════════════════════
     with tab_compare:
         c1, c2, c3 = st.columns([2, 1, 1])
         with c1: yr = st.select_slider("Year", years, value=years[-2], key="c_yr")
@@ -528,16 +546,18 @@ if page == "📊 DAM Price History":
             fig = go.Figure()
             for t,c in [("Hub","#c8102e"),("LZ","#1a3a7a")]:
                 g = bdf[bdf["type"]==t]
-                if not g.empty:
-                    fig.add_trace(go.Bar(y=g["SP"],x=g["val"],orientation="h",name=t,marker_color=c,
-                        hovertemplate="%{y}: $%{x:.2f}<extra></extra>"))
-            lay = ss_layout(f"{yr} — {met} by SP", 450)
-            lay["xaxis"] = dict(gridcolor="#e2e0db",tickprefix="$",tickfont=dict(size=10,color="#6b6b64"))
-            lay["yaxis"] = dict(gridcolor="#e2e0db",tickfont=dict(size=10,color="#6b6b64"))
-            lay["barmode"] = "group"
-            fig.update_layout(**lay)
+                if not g.empty: fig.add_trace(go.Bar(y=g["SP"],x=g["val"],orientation="h",name=t,marker_color=c))
+            fig.update_layout(
+                title=dict(text=f"{yr} — {met} by SP", font=dict(family="Playfair Display", size=14, color="#1a1a18")),
+                height=450, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                xaxis=dict(gridcolor="#e2e0db",tickprefix="$",tickfont=dict(size=10,color="#6b6b64")),
+                yaxis=dict(gridcolor="#e2e0db",tickfont=dict(size=10,color="#6b6b64")),
+                barmode="group", margin=dict(l=80, r=20, t=45, b=40))
             st.plotly_chart(fig, use_container_width=True)
 
+    # ══════════════════════════════════════════════════════════════
+    # TAB: HEATMAP
+    # ══════════════════════════════════════════════════════════════
     with tab_heatmap:
         heat_sp = st.selectbox("Settlement Point", sps, index=sps.index("HB_HUBAVG"), key="h_sp")
         sp_m = dam["monthly"].get(heat_sp, {})
@@ -553,38 +573,32 @@ if page == "📊 DAM Price History":
                 colorscale=[[0,"#1a6a1a"],[0.15,"#2a9d8f"],[0.3,"#e9c46a"],[0.5,"#f4a261"],[0.7,"#e63946"],[1,"#7a0000"]],
                 hovertemplate="%{y} %{x}: $%{z:.2f}/MWh<extra></extra>",
                 colorbar=dict(title="$/MWh", tickprefix="$")))
-            lay = ss_layout(f"Monthly Avg DAM — {heat_sp}", 500)
-            lay["yaxis"] = dict(dtick=1, tickfont=dict(size=10, color="#6b6b64", family="DM Mono"))
-            lay["xaxis"] = dict(tickfont=dict(size=10, color="#6b6b64"))
-            fig.update_layout(**lay)
+            fig.update_layout(
+                title=dict(text=f"Monthly Avg — {heat_sp}", font=dict(family="Playfair Display", size=14, color="#1a1a18")),
+                height=500, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                yaxis=dict(dtick=1,tickfont=dict(size=10,color="#6b6b64",family="DM Mono")),
+                margin=dict(l=55, r=20, t=45, b=40))
             st.plotly_chart(fig, use_container_width=True)
 
-            seasonal = [[] for _ in range(12)]
-            for i in range(len(sp_m["year"])):
-                if sp_m["avg"][i] < 500: seasonal[sp_m["month"][i]-1].append(sp_m["avg"][i])
-            savg = [round(np.mean(s),2) if s else 0 for s in seasonal]
-            fig2 = go.Figure(go.Bar(x=MONTHS, y=savg,
-                marker=dict(color=savg, colorscale=[[0,"#1a6a1a"],[0.5,"#e9c46a"],[1,"#c8102e"]]),
-                hovertemplate="%{x}: $%{y:.2f}<extra></extra>"))
-            fig2.update_layout(**ss_layout(f"Seasonal Profile — {heat_sp} (excl. Uri)", 280))
-            st.plotly_chart(fig2, use_container_width=True)
-
+    # ══════════════════════════════════════════════════════════════
+    # TAB: VOLATILITY & SPIKES
+    # ══════════════════════════════════════════════════════════════
     with tab_vol:
         sd = []
         for yr in years:
             ys = str(yr)
-            sd.append({"Year":yr, ">$100":dam.get("spikes_gt100",{}).get(ys,0),
-                ">$500":dam.get("spikes_gt500",{}).get(ys,0),
-                ">$1000":dam.get("spikes_gt1000",{}).get(ys,0),
-                "Negative":dam.get("spikes_negative",{}).get(ys,0)})
+            sd.append({"Year":yr,">$100":dam.get("spikes_gt100",{}).get(ys,0),">$500":dam.get("spikes_gt500",{}).get(ys,0),
+                ">$1000":dam.get("spikes_gt1000",{}).get(ys,0),"Negative":dam.get("spikes_negative",{}).get(ys,0)})
         sdf = pd.DataFrame(sd)
         fig = go.Figure()
         for col,c in [(">$100","#f4a261"),(">$500","#e63946"),(">$1000","#7a0000"),("Negative","#1a3a7a")]:
             fig.add_trace(go.Bar(x=sdf["Year"],y=sdf[col],name=col,marker_color=c))
-        lay = ss_layout("Price Spike Hours by Year (All SPs)", 380)
-        lay["barmode"]="group"; lay["xaxis"]["dtick"]=1
-        lay["yaxis"]["title"]="Hours"; lay["yaxis"].pop("tickprefix",None)
-        fig.update_layout(**lay)
+        fig.update_layout(
+            title=dict(text="Price Spike Hours by Year", font=dict(family="Playfair Display", size=14, color="#1a1a18")),
+            height=380, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+            barmode="group", xaxis=dict(gridcolor="#e2e0db", dtick=1),
+            yaxis=dict(gridcolor="#e2e0db", title="Hours", tickfont=dict(size=10, color="#6b6b64")),
+            margin=dict(l=55, r=20, t=45, b=40))
         st.plotly_chart(fig, use_container_width=True)
 
         vol_sps = st.multiselect("Compare Volatility", sps, default=["HB_HUBAVG","HB_WEST","HB_PAN","LZ_WEST"], key="v_sps")
@@ -594,22 +608,15 @@ if page == "📊 DAM Price History":
                 d = dam["yearly"].get(sp, {})
                 if d: fig2.add_trace(go.Scatter(x=d["years"],y=d["std"],mode="lines+markers",name=sp,
                     line=dict(color=PALETTE[i%len(PALETTE)],width=2)))
-            lay2 = ss_layout("Yearly Std Dev — Volatility", 360); lay2["xaxis"]["dtick"]=1
-            fig2.update_layout(**lay2)
+            fig2.update_layout(
+                title=dict(text="Yearly Std Dev — Volatility", font=dict(family="Playfair Display", size=14, color="#1a1a18")),
+                height=360, paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
+                xaxis=dict(gridcolor="#e2e0db", dtick=1),
+                yaxis=dict(gridcolor="#e2e0db", tickprefix="$", tickfont=dict(size=10, color="#6b6b64")),
+                margin=dict(l=55, r=20, t=45, b=40))
             st.plotly_chart(fig2, use_container_width=True)
 
-        st.markdown("""<div class="ercot-card" style="border-left-color:#c8102e"><h3>Key Findings</h3>
-        <div style="font-size:13px;color:#3d3d38;line-height:1.7">
-        <b style="color:#c8102e">Winter Storm Uri (Feb 2021)</b> — HB_HUBAVG averaged $1,483/MWh, peaks ~$9,000.<br>
-        <b style="color:#b8860b">2022</b> — sustained elevated pricing from nat gas spikes.<br>
-        <b style="color:#1a3a7a">HB_PAN / HB_WEST</b> — most negative prices (wind curtailment).<br>
-        <b style="color:#1a6a1a">LZ_WEST</b> — persistent premium from transmission constraints.
-        </div></div>""", unsafe_allow_html=True)
 
-
-# ═══════════════════════════════════════════════════════════════════
-# PAGE 2: FORECAST ENGINE
-# ═══════════════════════════════════════════════════════════════════
 elif page == "🤖 Forecast Engine":
     st.markdown("""<div class="page-header">
         <div><div class="tag">ML Forecast · GBR Ensemble · 2024 Backtest</div>
