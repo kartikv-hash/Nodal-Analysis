@@ -1755,13 +1755,14 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    page = st.radio("", [
-        "🗺️ Infrastructure Map",
-        "⚡ Node & Hub Selector",
-        "🔍 Bus Lookup",
-        "🏭 Substation Lookup",
-        "📋 Browse All",
-    ], label_visibility="collapsed")
+page = st.radio("", [
+    "🗺️ Infrastructure Map",
+    "⚡ Node & Hub Selector",
+    "📈 Live LMP Dashboard",
+    "🔍 Bus Lookup",
+    "🏭 Substation Lookup",
+    "📋 Browse All",
+], label_visibility="collapsed")
 
     st.markdown(f"""
     <div style="padding:20px 20px 0;margin-top:8px">
@@ -2240,3 +2241,7 @@ elif page == "📋 Browse All":
     disp=["Bus","PSSE Name","kV","Substation","Zone","Resource Node","Hub","PSSE #"]
     st.dataframe(f[disp].reset_index(drop=True),use_container_width=True,height=500)
     st.download_button("↓ Export CSV",data=to_csv_bytes(f[disp]),file_name="ercot_browse.csv",mime="text/csv")
+
+elif page == "📈 Live LMP Dashboard":
+    from ercot_lmp_live import render_live_lmp_page
+    render_live_lmp_page()
