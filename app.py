@@ -24,16 +24,11 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────
-# CSS — Cyberpunk Neon
+# CSS
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
-
-/* ═══════════════════════════════════════════════
-   SUNSTRIPE — Professional White/Red Theme
-   Playfair Display (display) · DM Sans (body) · DM Mono (data)
-   ═══════════════════════════════════════════════ */
 
 :root {
   --bg:        #ffffff;
@@ -53,7 +48,6 @@ st.markdown("""
   --gold-lt:   #f5f0e0;
 }
 
-/* ── Reset & Base ─────────────────────────────── */
 html, body,
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"] {
@@ -68,7 +62,6 @@ html, body,
     background-size: 48px 48px !important;
 }
 
-/* ── Sidebar ──────────────────────────────────── */
 [data-testid="stSidebar"] {
     background: var(--ink) !important;
     border-right: 3px solid var(--red) !important;
@@ -85,15 +78,10 @@ html, body,
     color: rgba(255,255,255,0.7) !important;
     transition: color 0.15s !important;
 }
-[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
-    color: #fff !important;
-}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover { color: #fff !important; }
 [data-testid="stSidebar"] [aria-checked="true"] + div label,
-[data-testid="stSidebar"] [data-baseweb="radio"] [aria-checked="true"] ~ * {
-    color: #fff !important;
-}
+[data-testid="stSidebar"] [data-baseweb="radio"] [aria-checked="true"] ~ * { color: #fff !important; }
 
-/* ── Page headers ─────────────────────────────── */
 .page-header {
     border-bottom: 2px solid var(--ink);
     padding-bottom: 18px;
@@ -138,7 +126,6 @@ html, body,
     text-transform: uppercase;
 }
 
-/* ── Section labels ───────────────────────────── */
 .section-label {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
@@ -165,7 +152,6 @@ html, body,
     font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
 }
 
-/* ── Cards ────────────────────────────────────── */
 .osm-card {
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -221,7 +207,6 @@ html, body,
     font-size: 13px; font-weight: 500; color: var(--ink2); margin-top: 3px;
 }
 
-/* ── Tags / Pills ─────────────────────────────── */
 .tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .tag-bus  { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:10px; font-weight:500; background: var(--red-light); border:1px solid var(--red-mid); color: var(--red-dark); }
 .tag-zone { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:10px; background: #e8f0fe; border:1px solid #a8c0f0; color: #1a3a7a; }
@@ -229,7 +214,6 @@ html, body,
 .tag-hub  { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:10px; background: var(--gold-lt); border:1px solid #d4a820; color: var(--gold); font-weight:600; }
 .tag-rn   { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:10px; background: var(--bg3); border:1px solid var(--border); color: var(--ink3); }
 
-/* ── kV badges ────────────────────────────────── */
 .kv { display:inline-block; padding:3px 10px; border-radius:2px; font-family:'DM Mono',monospace; font-size:11px; font-weight:600; }
 .kv-345 { color: var(--red-dark); background: var(--red-light); border:1px solid var(--red-mid); }
 .kv-230 { color: #7a5a00; background: var(--gold-lt); border:1px solid #d4a820; }
@@ -238,7 +222,6 @@ html, body,
 .kv-69  { color: var(--ink2); background: var(--bg3); border:1px solid var(--border2); }
 .kv-34  { color: var(--ink4); background: var(--bg3); border:1px solid var(--border); }
 
-/* ── Map placeholder ──────────────────────────── */
 .map-placeholder {
     text-align: center; padding: 60px 20px;
     background: var(--bg2); border: 1px solid var(--border);
@@ -255,12 +238,10 @@ html, body,
     font-size: 13px; line-height: 1.7; color: var(--ink4);
 }
 
-/* ── Confidence labels ────────────────────────── */
 .conf-high { color: #1a6a1a; font-weight: 600; }
 .conf-med  { color: var(--gold); font-weight: 600; }
 .conf-low  { color: var(--red); font-weight: 600; }
 
-/* ── Streamlit tabs ───────────────────────────── */
 .stTabs [data-baseweb="tab-list"] {
     background: var(--bg) !important;
     border-bottom: 2px solid var(--border) !important;
@@ -283,7 +264,6 @@ html, body,
     font-weight: 600 !important;
 }
 
-/* ── Inputs & selects ─────────────────────────── */
 .stTextInput input,
 div[data-baseweb="select"] > div,
 .stNumberInput input {
@@ -301,7 +281,6 @@ div[data-baseweb="select"] > div:focus-within {
     box-shadow: 0 0 0 3px rgba(200,16,46,0.08) !important;
 }
 
-/* ── Buttons ──────────────────────────────────── */
 .stDownloadButton button, .stButton button {
     background: var(--bg) !important;
     border: 1px solid var(--border2) !important;
@@ -334,7 +313,6 @@ button[kind="primary"]:hover {
     box-shadow: 0 4px 16px rgba(200,16,46,0.35) !important;
 }
 
-/* ── Metrics ──────────────────────────────────── */
 [data-testid="stMetric"] {
     background: var(--bg2) !important;
     border: 1px solid var(--border) !important;
@@ -366,7 +344,6 @@ button[kind="primary"]:hover {
     font-size: 12px !important;
 }
 
-/* ── Checkboxes ───────────────────────────────── */
 [data-testid="stCheckbox"] label {
     font-family: 'DM Sans', sans-serif !important;
     font-size: 13px !important;
@@ -374,21 +351,18 @@ button[kind="primary"]:hover {
     letter-spacing: 0 !important;
 }
 
-/* ── DataFrames ───────────────────────────────── */
 [data-testid="stDataFrame"] {
     border: 1px solid var(--border) !important;
     border-radius: 2px !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
 }
 
-/* ── Alerts ───────────────────────────────────── */
 [data-testid="stAlert"] {
     border-radius: 2px !important;
     border-left-width: 4px !important;
     font-family: 'DM Sans', sans-serif !important;
 }
 
-/* ── Misc ─────────────────────────────────────── */
 div[data-testid="stMarkdownContainer"] p {
     color: var(--ink2);
     font-size: 14px;
@@ -430,6 +404,7 @@ def load_data():
 df = load_data()
 TRANS_KV = ["345", "230", "138", "115", "69", "34.5"]
 
+
 # ─────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────
@@ -469,10 +444,8 @@ def neon_plotly_layout(title="", height=320):
 # ZIP / CSV parser
 # ═══════════════════════════════════════════════════════════════════
 def parse_lmp_upload(uploaded_file):
-    """Accept ZIP (multiple CSVs) or single CSV. Returns unified DataFrame."""
     name = uploaded_file.name.lower()
     frames = []
-
     if name.endswith(".zip"):
         with zipfile.ZipFile(io.BytesIO(uploaded_file.read())) as z:
             csv_files = [f for f in z.namelist() if f.endswith(".csv")]
@@ -493,22 +466,14 @@ def parse_lmp_upload(uploaded_file):
         except Exception as e:
             return None, str(e)
 
-    # Auto-detect columns — handles DAM, SCED, RTM, and all other ERCOT formats
     col_map = {}
     for c in combined.columns:
         u = c.upper().strip().replace(" ", "").replace("_", "")
-        if any(k in u for k in [
-            "SETTLEMENTPOINTNAME","SETTLEMENTPOINT","SPNAME",
-            "BUSNAME","NODENAME","ELECTRICALBUS","ELECBUS","BUSID","SETTLEMENTBUS",
-        ]):
+        if any(k in u for k in ["SETTLEMENTPOINTNAME","SETTLEMENTPOINT","SPNAME","BUSNAME","NODENAME","ELECTRICALBUS","ELECBUS","BUSID","SETTLEMENTBUS"]):
             if "bus" not in col_map: col_map["bus"] = c
-        elif any(k in u for k in [
-            "SETTLEMENTPOINTPRICE","PRICE","LMP","SPP","RTLMP","DAMLMP","MCPRICE",
-        ]):
+        elif any(k in u for k in ["SETTLEMENTPOINTPRICE","PRICE","LMP","SPP","RTLMP","DAMLMP","MCPRICE"]):
             if "price" not in col_map: col_map["price"] = c
-        elif any(k in u for k in [
-            "SCEDTIMESTAMP","TIMESTAMP","INTERVALTIME","OPERATINGHOUR","INTERVALENDING",
-        ]):
+        elif any(k in u for k in ["SCEDTIMESTAMP","TIMESTAMP","INTERVALTIME","OPERATINGHOUR","INTERVALENDING"]):
             if "timestamp" not in col_map: col_map["timestamp"] = c
         elif any(k in u for k in ["HOURENDING","HOUROFDAY","HOUR","DELIVERYHOUR"]):
             if "hour" not in col_map: col_map["hour"] = c
@@ -524,14 +489,11 @@ def parse_lmp_upload(uploaded_file):
     combined = combined.rename(columns=rename)
     combined["price"] = pd.to_numeric(combined["price"], errors="coerce")
 
-    # Build datetime — priority: full timestamp > date+hour > hour > index
     if "timestamp" in col_map:
         combined["datetime"] = pd.to_datetime(combined["timestamp"], errors="coerce")
         if combined["datetime"].isna().all():
             combined["datetime"] = pd.to_datetime(
-                combined["timestamp"].str.replace(r"[+-]\d{2}:\d{2}$", "", regex=True),
-                errors="coerce"
-            )
+                combined["timestamp"].str.replace(r"[+-]\d{2}:\d{2}$", "", regex=True), errors="coerce")
     elif "date" in col_map and "hour" in combined.columns:
         try:
             combined["hour_int"] = pd.to_numeric(combined["hour"], errors="coerce").fillna(0).astype(int)
@@ -552,7 +514,6 @@ def parse_lmp_upload(uploaded_file):
 # ═══════════════════════════════════════════════════════════════════
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_ercot_dam_live(settlement_point, date_from, date_to):
-    """Fetch DAM LMP from ERCOT public API."""
     url = "https://data.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
     params = {
         "deliveryDateFrom": date_from,
@@ -574,13 +535,6 @@ def fetch_ercot_dam_live(settlement_point, date_from, date_to):
     except Exception as e:
         return None, f"ERCOT API error: {e}"
 
-
-# ═══════════════════════════════════════════════════════════════════
-# LMP Analytics engine
-# ═══════════════════════════════════════════════════════════════════
-# ═══════════════════════════════════════════════════════════════════
-# BESS rolling-average helper (from ERCOT BESS Dashboard)
-# ═══════════════════════════════════════════════════════════════════
 
 # ═══════════════════════════════════════════════════════════════════
 # PDF Report Generator
@@ -661,7 +615,7 @@ def generate_pdf_report(search_results, ercot_sub, sub_df, lmp_summary=None):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# Overpass search — mirror fallback chain
+# Overpass search
 # ═══════════════════════════════════════════════════════════════════
 OVERPASS_MIRRORS = [
     "https://overpass-api.de/api/interpreter",
@@ -815,15 +769,7 @@ def render_ercot_card(sub_name, sub_df):
     """, unsafe_allow_html=True)
 
 
-
-
 def bess_calc(bdf: pd.DataFrame, half_w: int):
-    """
-    3-hour centred rolling-average BESS strategy.
-    bdf must have columns: Hour (numeric 1-24), price ($/MWh)
-    half_w: 1 = 2H storage (±1hr), 2 = 4H storage (±2hr)
-    Returns: revenue, roll_series, low_hr, high_hr, charge_win, discharge_win
-    """
     roll = (bdf["price"]
             .rolling(window=3, center=True, min_periods=1)
             .mean()
@@ -844,13 +790,9 @@ def bess_calc(bdf: pd.DataFrame, half_w: int):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# LMP Analytics engine — all use-cases
+# LMP Analytics engine
 # ═══════════════════════════════════════════════════════════════════
 def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, efficiency=0.85):
-    """
-    All use-case analytics. Congestion/Curtailment use the CI/CSS/CPI/ECS formulas
-    from the ERCOT analytics pipeline (see reference script).
-    """
     import numpy as np
     buses = set(resolved_df["Bus"].str.upper())
     lmp_df["_bus_up"] = lmp_df["bus"].astype(str).str.upper().str.strip()
@@ -859,57 +801,34 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
         return None, "No matching buses in LMP data"
     matched = matched.sort_values("datetime")
 
-    # ── CONGESTION INDEX (CI) + CSS ───────────────────────────────
-    # CI(node, t) = LMP_hub(t) − LMP_node(t)
-    # CSS(node)   = mean(|CI|)  — Congestion Severity Score
-    #
-    # Hub selection priority:
-    #   1. HB_* hub buses in the LMP file itself
-    #   2. Hub assigned in the ERCOT CSV for these buses (resolved_df["Hub"])
-    #   3. All-bus average as synthetic hub (for same-substation analysis)
     if use_case == "congestion":
         bus_list = matched["_bus_up"].unique().tolist()
-
-        # Build pivot
-        pivot = matched.pivot_table(
-            index="datetime", columns="_bus_up", values="price", aggfunc="mean")
-
-        # ── Find best hub reference ───────────────────────────────
+        pivot = matched.pivot_table(index="datetime", columns="_bus_up", values="price", aggfunc="mean")
         hub = None
         hub_source = ""
-
-        # 1. HB_ hub in the LMP data itself
         hb_in_data = [b for b in pivot.columns if b.upper().startswith("HB_")]
         if hb_in_data:
             hub = hb_in_data[0]
             hub_source = "HB hub in uploaded LMP file"
-
-        # 2. Hub from ERCOT CSV for these buses
         if hub is None:
             hub_col = resolved_df[resolved_df["Bus"].str.upper().isin(set(pivot.columns))]
             ercot_hubs = hub_col[hub_col["Hub"].str.strip() != ""]["Hub"].unique().tolist()
             if ercot_hubs:
                 hub = ercot_hubs[0].upper().strip()
                 hub_source = f"ERCOT CSV assigned hub: {hub}"
-                # If this hub is not in the LMP data, note it but still use it as label
                 if hub not in pivot.columns:
-                    # Cannot compute CI without hub LMP — use all-bus avg instead
                     pivot["_AVG_HUB"] = pivot.mean(axis=1)
                     hub = "_AVG_HUB"
                     hub_source = f"All-bus average (ERCOT hub {ercot_hubs[0]} not in LMP data)"
-
-        # 3. Fallback: all-bus average as synthetic hub
         if hub is None:
             pivot["_AVG_HUB"] = pivot.mean(axis=1)
             hub = "_AVG_HUB"
             hub_source = "All-bus average (no hub reference available)"
-
         results = []
         for node in pivot.columns:
-            if node == hub or node == "_AVG_HUB":
-                continue
-            ci_series = pivot[hub] - pivot[node]           # CI(node,t)
-            css       = ci_series.abs().mean()             # CSS = mean(|CI|)
+            if node == hub or node == "_AVG_HUB": continue
+            ci_series = pivot[hub] - pivot[node]
+            css       = ci_series.abs().mean()
             congested_hours = int((ci_series.abs() > 10).sum())
             congestion_pct  = round((ci_series.abs() > 10).mean() * 100, 1)
             source_side     = int((ci_series >  10).sum())
@@ -917,90 +836,54 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
             avg_ci          = round(ci_series.mean(), 2)
             max_ci          = round(ci_series.abs().max(), 2)
             spread_ci       = round(ci_series.max() - ci_series.min(), 2)
-
             if css > 10:   cong_risk = "🔴 HIGH"
             elif css > 3:  cong_risk = "🟡 MEDIUM"
             else:          cong_risk = "🟢 LOW"
-
             cr_proxy = round(ci_series.mean() * batt_mw, 0)
-
             results.append({
-                "Node":               node,
-                "Hub (reference)":    hub.replace("_AVG_HUB","Avg of all buses"),
-                "Avg CI ($/MWh)":     avg_ci,
-                "CSS ($/MWh)":        round(css, 2),
-                "Max |CI| ($/MWh)":   max_ci,
-                "CI Spread ($/MWh)":  spread_ci,
-                "Congestion %":       congestion_pct,
-                "Congested Hours":    congested_hours,
-                "Source-Side Hours":  source_side,
-                "Load-Side Hours":    load_side,
-                "CR Proxy ($/hr)":    cr_proxy,
-                "Congestion Risk":    cong_risk,
+                "Node": node, "Hub (reference)": hub.replace("_AVG_HUB","Avg of all buses"),
+                "Avg CI ($/MWh)": avg_ci, "CSS ($/MWh)": round(css, 2),
+                "Max |CI| ($/MWh)": max_ci, "CI Spread ($/MWh)": spread_ci,
+                "Congestion %": congestion_pct, "Congested Hours": congested_hours,
+                "Source-Side Hours": source_side, "Load-Side Hours": load_side,
+                "CR Proxy ($/hr)": cr_proxy, "Congestion Risk": cong_risk,
             })
-
         if not results:
             return None, "Not enough nodes for congestion analysis (need ≥2 buses)"
-
         df_out = pd.DataFrame(results).sort_values("CSS ($/MWh)", ascending=False)
         df_out.attrs["hub"]        = hub.replace("_AVG_HUB","Avg of all buses")
         df_out.attrs["hub_source"] = hub_source
-        # Flag same-substation analysis so UI can warn
         unique_prices = pivot.drop(columns=[c for c in ["_AVG_HUB"] if c in pivot.columns]).std().mean()
         df_out.attrs["low_variance"] = bool(unique_prices < 0.5)
         return df_out, None
 
-    # ── CURTAILMENT PROBABILITY INDEX (CPI) + ECS ────────────────
-    # CPI(node) = (count LMP ≤ 0) / T × 100
-    # ECS       = 1 if LMP ≤ 0 (economic curtailment signal)
     elif use_case == "curtailment":
-        import numpy as np
         results = []
         for bus in matched["_bus_up"].unique():
             bdf   = matched[matched["_bus_up"] == bus].copy()
             total = len(bdf)
             if total == 0: continue
-
-            # ECS per interval
             bdf["ECS"] = (bdf["price"] <= 0).astype(int)
-
             neg_count   = int((bdf["price"] < 0).sum())
             zero_count  = int((bdf["price"] <= 0).sum())
             deep_neg    = int((bdf["price"] < -20).sum())
-            cpi         = round(zero_count / total * 100, 2)    # CPI_%
+            cpi         = round(zero_count / total * 100, 2)
             avg_p       = round(bdf["price"].mean(), 2)
             min_p       = round(bdf["price"].min(), 2)
             p5          = round(bdf["price"].quantile(0.05), 2)
-
-            # Weighted curtailment: avg LMP during curtailed hours
             curt_lmp    = round(bdf.loc[bdf["price"] <= 0, "price"].mean(), 2) if zero_count else 0.0
-
-            # ECS hours = consecutive curtailment windows
             ecs_runs    = int((bdf["ECS"].diff() != 0).sum() // 2) if zero_count else 0
-
-            # Risk labels (from reference: >20% HIGH, >5% MEDIUM, else LOW)
             if cpi > 20:   curt_risk = "🔴 HIGH"
             elif cpi > 5:  curt_risk = "🟡 MEDIUM"
             else:          curt_risk = "🟢 LOW"
-
             results.append({
-                "Bus":                   bus,
-                "Total Intervals":       total,
-                "CPI % (LMP ≤ 0)":      cpi,
-                "Neg Price Hours":       neg_count,
-                "≤ $0 Hours":           zero_count,
-                "< −$20 Hours":         deep_neg,
-                "ECS Events":            ecs_runs,
-                "Avg LMP ($/MWh)":       avg_p,
-                "Min LMP ($/MWh)":       min_p,
-                "P5 LMP ($/MWh)":        p5,
-                "Avg Curtailed LMP":     curt_lmp,
-                "Curtailment Risk":      curt_risk,
+                "Bus": bus, "Total Intervals": total, "CPI % (LMP ≤ 0)": cpi,
+                "Neg Price Hours": neg_count, "≤ $0 Hours": zero_count, "< −$20 Hours": deep_neg,
+                "ECS Events": ecs_runs, "Avg LMP ($/MWh)": avg_p, "Min LMP ($/MWh)": min_p,
+                "P5 LMP ($/MWh)": p5, "Avg Curtailed LMP": curt_lmp, "Curtailment Risk": curt_risk,
             })
-
         return pd.DataFrame(results).sort_values("CPI % (LMP ≤ 0)", ascending=False), None
 
-    # ── FTR SCANNER ───────────────────────────────────────────────
     elif use_case == "ftr":
         pivot = matched.pivot_table(index="datetime", columns="_bus_up", values="price", aggfunc="mean")
         results = []
@@ -1016,7 +899,6 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
                     "Win Rate %": round(len(pos_spread)/len(spread)*100, 1) if len(spread) else 0})
         return pd.DataFrame(results).sort_values("Avg FTR Value $/MWh", ascending=False), None
 
-    # ── REVENUE MODEL ─────────────────────────────────────────────
     elif use_case == "revenue":
         results = []
         for bus in matched["_bus_up"].unique():
@@ -1035,7 +917,7 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
 
 
 # ═══════════════════════════════════════════════════════════════════
-# LMP render — upload → instant 24h chart + BESS strategy overlays
+# LMP render
 # ═══════════════════════════════════════════════════════════════════
 def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_sub=None):
     st.markdown('<div class="section-label">LMP Analysis Engine</div>', unsafe_allow_html=True)
@@ -1045,7 +927,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     if lmp_key not in st.session_state: st.session_state[lmp_key] = None
     if bus_key  not in st.session_state: st.session_state[bus_key] = None
 
-    # ── Upload + Live API ─────────────────────────────────────────
     up_col, api_col = st.columns([3, 2])
     with up_col:
         st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px;font-weight:500">Upload LMP File (CSV or ZIP)</div>', unsafe_allow_html=True)
@@ -1102,7 +983,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                     st.session_state[bus_key] = None
                     st.success(f"✓ {len(ldf):,} rows for {live_bus}")
 
-    # ── Check data ────────────────────────────────────────────────
     ldf = st.session_state[lmp_key]
     if ldf is None:
         st.markdown("""<div class="map-placeholder" style="padding:32px;margin-top:12px">
@@ -1112,7 +992,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         </div>""", unsafe_allow_html=True)
         return None
 
-    # ── Match buses ───────────────────────────────────────────────
     buses_up = set(resolved_df["Bus"].str.upper())
     ldf["_bus_up"] = ldf["bus"].astype(str).str.upper().str.strip()
     matched = ldf[ldf["_bus_up"].isin(buses_up)].copy()
@@ -1120,7 +999,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         st.warning("No buses matched. Check settlement point names in your file.")
         return None
 
-    # ── Data metrics row ─────────────────────────────────────────
     m1,m2,m3,m4 = st.columns(4)
     m1.metric("Total Rows",    f"{len(ldf):,}")
     m2.metric("Matched Rows",  f"{len(matched):,}")
@@ -1128,7 +1006,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     m4.metric("Avg LMP",       f"${matched['price'].mean():.2f}/MWh")
     st.markdown('<hr style="border-color:#e2e0db;margin:14px 0"/>', unsafe_allow_html=True)
 
-    # ── Bus + Date controls ───────────────────────────────────────
     bus_list = sorted(matched["_bus_up"].unique().tolist())
     if st.session_state[bus_key] not in bus_list:
         st.session_state[bus_key] = bus_list[0]
@@ -1140,7 +1017,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
             key=f"{key_prefix}_bus_sel", label_visibility="collapsed")
         st.session_state[bus_key] = sel_bus
 
-    # ── Prepare data for selected bus ────────────────────────────
     bdf_full = matched[matched["_bus_up"] == sel_bus].copy()
     bdf_full["datetime"] = pd.to_datetime(bdf_full["datetime"], errors="coerce")
     bdf_full = bdf_full.dropna(subset=["datetime"]).sort_values("datetime")
@@ -1157,7 +1033,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     with c4:
         multi_date = st.checkbox("Compare dates", value=False, key=f"{key_prefix}_multidate")
 
-    # ── Filter ───────────────────────────────────────────────────
     if show_all or d_min == d_max:
         plot_bdf = bdf_full.copy()
         date_label = f"{d_min} → {d_max}"
@@ -1169,32 +1044,25 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         st.warning(f"No data for {sel_date}. Try 'All dates'.")
         return None
 
-    # ── Build hourly profile (the key fix) ───────────────────────
-    # Extract hour-of-day from timestamps, handling SCED millisecond noise
     time_span = (plot_bdf["datetime"].max() - plot_bdf["datetime"].min()).total_seconds()
     n_rows = len(plot_bdf)
 
     if n_rows > 1 and time_span < 120:
-        # Sub-second timestamps → assign synthetic hour-of-day by position
-        # 19000 rows ÷ 24 hours = ~792 rows/hour
         rows_per_hour = max(1, n_rows // 24)
         plot_bdf = plot_bdf.reset_index(drop=True)
         plot_bdf["Hour"] = (plot_bdf.index // rows_per_hour) + 1
         plot_bdf["Hour"] = plot_bdf["Hour"].clip(1, 24)
         hourly = plot_bdf.groupby("Hour")["price"].mean().reset_index()
         hourly.columns = ["Hour", "price"]
-        fixed_timestamps = True
     else:
-        plot_bdf["Hour"] = plot_bdf["datetime"].dt.hour + 1  # 1-24
+        plot_bdf["Hour"] = plot_bdf["datetime"].dt.hour + 1
         hourly = plot_bdf.groupby("Hour")["price"].mean().reset_index()
         hourly.columns = ["Hour", "price"]
-        fixed_timestamps = False
 
     if hourly.empty or len(hourly) < 2:
         st.warning("Not enough hourly data points. Try 'All dates' for a fuller dataset.")
         return None
 
-    # ── Summary metrics ───────────────────────────────────────────
     avg_p    = hourly["price"].mean()
     last_p   = hourly["price"].iloc[-1]
     peak_p   = hourly["price"].max()
@@ -1213,7 +1081,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     sm4.metric("Min LMP",    f"${min_p:.2f}",   f"Hr {min_h:.0f}")
     sm5.metric("Spread",     f"${spread:.2f}",  vol_lbl)
 
-    # ── Strategy recommendation ───────────────────────────────────
     if spread > 80:
         st.success("✅  Pure Merchant Arbitrage Opportunity — spread > $80/MWh")
     elif spread > 40:
@@ -1221,19 +1088,14 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     else:
         st.info("ℹ️  Low Spread — focus on Capacity / Ancillary markets")
 
-    # ── Overlay controls ─────────────────────────────────────────
     st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin:12px 0 8px;font-weight:500">Chart Overlays</div>', unsafe_allow_html=True)
     ov1, ov2, ov3, ov4, ov5, ov6 = st.columns([2, 2, 1, 1, 1, 1])
 
-    # BESS strategy selector — defaults to None (not shown until selected)
     with ov1:
         bess_strategy = st.selectbox(
             "BESS Storage Strategy",
             ["None", "2H Storage (±1 hr)", "4H Storage (±2 hr)", "Both (2H + 4H)"],
-            index=0,
-            key=f"{key_prefix}_bess_strategy",
-            label_visibility="visible"
-        )
+            index=0, key=f"{key_prefix}_bess_strategy", label_visibility="visible")
     ov_2h = bess_strategy in ("2H Storage (±1 hr)", "Both (2H + 4H)")
     ov_4h = bess_strategy in ("4H Storage (±2 hr)", "Both (2H + 4H)")
 
@@ -1247,7 +1109,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     with ov5:
         ov_multi  = st.checkbox("All Buses",   value=False, key=f"{key_prefix}_ov_multi")
 
-    # ── Only compute BESS strategy when selected ──────────────────
     if ov_2h or ov_4h:
         rev2, roll2, low2, high2, cw2, dw2 = bess_calc(hourly, half_w=1)
         rev4, roll4, low4, high4, cw4, dw4 = bess_calc(hourly, half_w=2)
@@ -1256,11 +1117,9 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         roll2 = roll4 = hourly["price"]
         cw2 = cw4 = dw2 = dw4 = (0, 0)
 
-    # ── BUILD CHART ───────────────────────────────────────────────
     PALETTE = ["#c8102e","#1a3a7a","#b8860b","#1a6a1a","#7a1a5a","#5a3a1a","#1a5a7a"]
     fig = go.Figure()
 
-    # Multi-date comparison
     if multi_date and not show_all and d_min != d_max:
         all_dates = sorted(bdf_full["datetime"].dt.date.unique().tolist())
         compare_dates = st.multiselect("Select dates to compare", all_dates,
@@ -1276,47 +1135,28 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 name=str(cdate), line=dict(color=col, width=2),
                 hovertemplate=f"{cdate} Hr%{{x}}: $%{{y:.2f}}<extra></extra>"))
     else:
-        # BESS shaded zones BELOW lines
         if ov_2h:
-            fig.add_vrect(x0=cw2[0]-0.4, x1=cw2[1]+0.4,
-                          fillcolor="rgba(26,106,26,0.10)", layer="below", line_width=0,
+            fig.add_vrect(x0=cw2[0]-0.4, x1=cw2[1]+0.4, fillcolor="rgba(26,106,26,0.10)", layer="below", line_width=0,
                           annotation_text=f"Charge 2H\nHr {cw2[0]:.0f}–{cw2[1]:.0f}",
-                          annotation_font=dict(size=9, color="#1a6a1a", family="DM Mono"),
-                          annotation_position="top left")
-            fig.add_vrect(x0=dw2[0]-0.4, x1=dw2[1]+0.4,
-                          fillcolor="rgba(200,16,46,0.08)", layer="below", line_width=0,
+                          annotation_font=dict(size=9, color="#1a6a1a", family="DM Mono"), annotation_position="top left")
+            fig.add_vrect(x0=dw2[0]-0.4, x1=dw2[1]+0.4, fillcolor="rgba(200,16,46,0.08)", layer="below", line_width=0,
                           annotation_text=f"Discharge 2H\nHr {dw2[0]:.0f}–{dw2[1]:.0f}",
-                          annotation_font=dict(size=9, color="#c8102e", family="DM Mono"),
-                          annotation_position="top right")
-
+                          annotation_font=dict(size=9, color="#c8102e", family="DM Mono"), annotation_position="top right")
         if ov_4h:
-            fig.add_vrect(x0=cw4[0]-0.4, x1=cw4[1]+0.4,
-                          fillcolor="rgba(26,58,122,0.06)", layer="below", line_width=0,
+            fig.add_vrect(x0=cw4[0]-0.4, x1=cw4[1]+0.4, fillcolor="rgba(26,58,122,0.06)", layer="below", line_width=0,
                           annotation_text=f"Charge 4H\nHr {cw4[0]:.0f}–{cw4[1]:.0f}",
-                          annotation_font=dict(size=9, color="#1a3a7a", family="DM Mono"),
-                          annotation_position="bottom left")
-            fig.add_vrect(x0=dw4[0]-0.4, x1=dw4[1]+0.4,
-                          fillcolor="rgba(184,134,11,0.06)", layer="below", line_width=0,
+                          annotation_font=dict(size=9, color="#1a3a7a", family="DM Mono"), annotation_position="bottom left")
+            fig.add_vrect(x0=dw4[0]-0.4, x1=dw4[1]+0.4, fillcolor="rgba(184,134,11,0.06)", layer="below", line_width=0,
                           annotation_text=f"Discharge 4H\nHr {dw4[0]:.0f}–{dw4[1]:.0f}",
-                          annotation_font=dict(size=9, color="#b8860b", family="DM Mono"),
-                          annotation_position="bottom right")
-
-        # Negative price zones
+                          annotation_font=dict(size=9, color="#b8860b", family="DM Mono"), annotation_position="bottom right")
         if ov_neg:
             neg_hrs = hourly[hourly["price"] < 0]["Hour"].tolist()
             for h in neg_hrs:
-                fig.add_vrect(x0=h-0.5, x1=h+0.5, fillcolor="rgba(120,0,160,0.12)",
-                              layer="below", line_width=0)
-
-        # Average horizontal line
+                fig.add_vrect(x0=h-0.5, x1=h+0.5, fillcolor="rgba(120,0,160,0.12)", layer="below", line_width=0)
         if ov_avg:
-            fig.add_hline(y=avg_p, line_dash="dash",
-                          line_color="rgba(100,100,100,0.5)", line_width=1,
+            fig.add_hline(y=avg_p, line_dash="dash", line_color="rgba(100,100,100,0.5)", line_width=1,
                           annotation_text=f"Avg ${avg_p:.2f}",
-                          annotation_font=dict(color="#6b6b64", size=10, family="DM Mono"),
-                          annotation_position="right")
-
-        # All buses comparison (dimmed)
+                          annotation_font=dict(color="#6b6b64", size=10, family="DM Mono"), annotation_position="right")
         if ov_multi:
             for bi, other_bus in enumerate([b for b in bus_list if b != sel_bus][:5]):
                 obdf = matched[matched["_bus_up"]==other_bus].copy()
@@ -1328,33 +1168,24 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 oh.columns = ["Hour","price"]
                 if oh.empty: continue
                 fig.add_trace(go.Scatter(x=oh["Hour"], y=oh["price"], mode="lines",
-                    name=other_bus, line=dict(color=PALETTE[(bi+1)%len(PALETTE)], width=1.2),
-                    opacity=0.45,
+                    name=other_bus, line=dict(color=PALETTE[(bi+1)%len(PALETTE)], width=1.2), opacity=0.45,
                     hovertemplate=f"{other_bus} Hr%{{x}}: $%{{y:.2f}}<extra></extra>"))
-
-        # MA3 rolling average
         if ov_ma3:
             fig.add_trace(go.Scatter(x=hourly["Hour"], y=roll2,
                 mode="lines", name="MA3 (3-hr roll avg)",
-                line=dict(color="#c8102e", width=1.5, dash="dot"),
-                opacity=0.55,
+                line=dict(color="#c8102e", width=1.5, dash="dot"), opacity=0.55,
                 hovertemplate="MA3 Hr%{x}: $%{y:.2f}<extra></extra>"))
-
-        # Spread band (min/max envelope)
         if ov_spread:
             fig.add_hline(y=peak_p, line_dash="dot", line_color="rgba(200,16,46,0.3)", line_width=1)
             fig.add_hline(y=min_p,  line_dash="dot", line_color="rgba(26,106,26,0.3)", line_width=1)
 
-        # Main LMP line
         fig.add_trace(go.Scatter(
             x=hourly["Hour"], y=hourly["price"],
             mode="lines+markers", name=sel_bus,
             line=dict(color="#c8102e", width=2.5),
             marker=dict(size=5, color="#c8102e"),
-            hovertemplate=f"{sel_bus} Hr%{{x}}: $%{{y:.2f}}/MWh<extra></extra>"
-        ))
+            hovertemplate=f"{sel_bus} Hr%{{x}}: $%{{y:.2f}}/MWh<extra></extra>"))
 
-        # 2H BESS strategy band
         if ov_2h:
             bess2_y = []
             for _, r in hourly.iterrows():
@@ -1366,24 +1197,19 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 mode="lines", name=f"2H BESS Band  (rev ${rev2:.2f}/MWh)",
                 line=dict(color="#1a6a1a", width=2, dash="dashdot"),
                 hovertemplate="2H Band Hr%{x}: $%{y:.2f}<extra></extra>"))
-
-            # Charge / Discharge markers
             fig.add_trace(go.Scatter(
                 x=[low2], y=[hourly.loc[hourly["Hour"].sub(low2).abs().idxmin(),"price"]],
-                mode="markers+text",
-                marker=dict(size=14, color="#1a6a1a", symbol="triangle-up"),
+                mode="markers+text", marker=dict(size=14, color="#1a6a1a", symbol="triangle-up"),
                 text=[f"  Charge\nHr {low2:.0f}"], textposition="middle right",
                 textfont=dict(color="#1a6a1a", size=9, family="DM Mono"),
                 name=f"2H Charge Hr {low2:.0f}", showlegend=False))
             fig.add_trace(go.Scatter(
                 x=[high2], y=[hourly.loc[hourly["Hour"].sub(high2).abs().idxmin(),"price"]],
-                mode="markers+text",
-                marker=dict(size=14, color="#c8102e", symbol="triangle-down"),
+                mode="markers+text", marker=dict(size=14, color="#c8102e", symbol="triangle-down"),
                 text=[f"  Discharge\nHr {high2:.0f}"], textposition="middle right",
                 textfont=dict(color="#c8102e", size=9, family="DM Mono"),
                 name=f"2H Discharge Hr {high2:.0f}", showlegend=False))
 
-        # 4H BESS strategy band
         if ov_4h:
             bess4_y = []
             for _, r in hourly.iterrows():
@@ -1396,58 +1222,40 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                 line=dict(color="#1a3a7a", width=2, dash="dash"),
                 hovertemplate="4H Band Hr%{x}: $%{y:.2f}<extra></extra>"))
 
-    # ── Chart layout ──────────────────────────────────────────────
     fig.update_layout(
-        title=dict(
-            text=f"24-Hour LMP Profile — {sel_bus} — {date_label}",
-            font=dict(family="Playfair Display", size=15, color="#1a1a18"), x=0.01
-        ),
+        title=dict(text=f"24-Hour LMP Profile — {sel_bus} — {date_label}",
+                   font=dict(family="Playfair Display", size=15, color="#1a1a18"), x=0.01),
         height=480,
         paper_bgcolor="#ffffff", plot_bgcolor="#f7f7f5",
         font=dict(family="DM Sans", color="#1a1a18", size=11),
-        xaxis=dict(
-            title=dict(text="Hour Ending", font=dict(color="#6b6b64", size=11)),
-            tickmode="linear", dtick=1,
-            range=[0.5, 24.5],
-            gridcolor="#e2e0db", linecolor="#d0cdc6",
-            tickfont=dict(size=10, color="#6b6b64"),
-            showgrid=True,
-        ),
-        yaxis=dict(
-            title=dict(text="LMP ($/MWh)", font=dict(color="#6b6b64", size=11)),
-            gridcolor="#e2e0db", linecolor="#d0cdc6",
-            tickfont=dict(size=10, color="#6b6b64"),
-            tickprefix="$",
-        ),
-        legend=dict(
-            bgcolor="rgba(247,247,245,0.96)", bordercolor="#e2e0db", borderwidth=1,
-            font=dict(size=10, family="DM Sans"),
-            orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
-        ),
+        xaxis=dict(title=dict(text="Hour Ending", font=dict(color="#6b6b64", size=11)),
+                   tickmode="linear", dtick=1, range=[0.5, 24.5],
+                   gridcolor="#e2e0db", linecolor="#d0cdc6",
+                   tickfont=dict(size=10, color="#6b6b64"), showgrid=True),
+        yaxis=dict(title=dict(text="LMP ($/MWh)", font=dict(color="#6b6b64", size=11)),
+                   gridcolor="#e2e0db", linecolor="#d0cdc6",
+                   tickfont=dict(size=10, color="#6b6b64"), tickprefix="$"),
+        legend=dict(bgcolor="rgba(247,247,245,0.96)", bordercolor="#e2e0db", borderwidth=1,
+                    font=dict(size=10, family="DM Sans"),
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         margin=dict(l=60, r=20, t=60, b=50),
         hovermode="x unified",
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # ── BESS revenue summary cards ────────────────────────────────
     if ov_2h or ov_4h:
         st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin:12px 0 8px;font-weight:500">Rolling-Average BESS Strategy Results</div>', unsafe_allow_html=True)
-
         with st.expander("ℹ️ How the rolling-average BESS strategy works", expanded=False):
             st.markdown("""
 **Step 1 — Smooth the curve:** A 3-hour centred rolling average removes single-hour spikes.
-
 **Step 2 — Find optimal hours:** Hour with lowest rolling avg → charge centre. Hour with highest → discharge centre.
-
 **Step 3 — Set windows:**
 | Storage | Charge window | Discharge window |
 |---|---|---|
 | 2H BESS | ±1 hr around avg-low | ±1 hr around avg-high |
 | 4H BESS | ±2 hr around avg-low | ±2 hr around avg-high |
-
 **Revenue** = avg LMP during discharge − avg LMP during charge
             """)
-
         r1,r2,r3,r4,r5,r6 = st.columns(6)
         r1.metric("2H Charge Hr",    f"Hr {low2:.0f}",  f"Avg ${hourly.loc[hourly['Hour'].sub(low2).abs().idxmin(),'price']:.2f}")
         r2.metric("2H Discharge Hr", f"Hr {high2:.0f}", f"Avg ${hourly.loc[hourly['Hour'].sub(high2).abs().idxmin(),'price']:.2f}")
@@ -1456,7 +1264,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         r5.metric("4H Discharge Hr", f"Hr {high4:.0f}", f"Avg ${hourly.loc[hourly['Hour'].sub(high4).abs().idxmin(),'price']:.2f}")
         r6.metric("4H Revenue",      f"${rev4:.2f}/MWh")
 
-    # ── Deep-dive use-case analysis ───────────────────────────────
     st.markdown('<div class="section-label" style="margin-top:24px">Deep-Dive Analysis</div>', unsafe_allow_html=True)
 
     USE_CASES = {
@@ -1472,8 +1279,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     uc_title, uc_desc = USE_CASES[uc_sel]
     st.markdown(f'<div style="font-family:DM Sans,sans-serif;font-size:13px;color:#6b6b64;margin-bottom:10px">{uc_desc}</div>', unsafe_allow_html=True)
 
-    run_btn = st.button(f"Run {uc_title} →", key=f"{key_prefix}_run_{uc_sel}",
-                        type="primary", use_container_width=False)
+    run_btn = st.button(f"Run {uc_title} →", key=f"{key_prefix}_run_{uc_sel}", type="primary", use_container_width=False)
     result = None
     if run_btn:
         with st.spinner("Analysing..."):
@@ -1491,210 +1297,80 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     if result is None:
         pass
 
-    # ══════════════════════════════════════════════════════════════
-    # CONGESTION — CI / CSS dashboard
-    # ══════════════════════════════════════════════════════════════
     elif uc_sel == "congestion" and isinstance(result, pd.DataFrame):
         hub        = result.attrs.get("hub", result["Hub (reference)"].iloc[0] if len(result) else "—")
         hub_source = result.attrs.get("hub_source", "")
         low_var    = result.attrs.get("low_variance", False)
-
-        # Same-substation warning
         if low_var:
-            st.warning(
-                f"⚠️ **Same-substation analysis detected.** All buses belong to the same "
-                f"substation and have nearly identical LMPs — congestion between them will be ~$0. "
-                f"For meaningful congestion analysis, include buses from **different substations** "
-                f"or upload an LMP file containing an **HB_HOUSTON / HB_NORTH / HB_SOUTH / HB_WEST** "
-                f"hub price column alongside your node buses."
-            )
-
-        st.markdown(f"""
-        <div style="background:#f0efec;border-left:4px solid #1a3a7a;border-radius:2px;
-             padding:10px 16px;margin-bottom:14px;font-family:DM Sans,sans-serif;font-size:13px;color:#3d3d38">
+            st.warning("⚠️ **Same-substation analysis detected.** All buses belong to the same substation and have nearly identical LMPs — congestion between them will be ~$0. For meaningful congestion analysis, include buses from **different substations** or upload an LMP file containing an **HB_HOUSTON / HB_NORTH / HB_SOUTH / HB_WEST** hub price column alongside your node buses.")
+        st.markdown(f"""<div style="background:#f0efec;border-left:4px solid #1a3a7a;border-radius:2px;padding:10px 16px;margin-bottom:14px;font-family:DM Sans,sans-serif;font-size:13px;color:#3d3d38">
             <b>Congestion Index (CI)</b> = LMP<sub>hub</sub> − LMP<sub>node</sub> &nbsp;·&nbsp;
             <b>Hub reference:</b> <code style="background:#e8f0fe;padding:1px 6px;border-radius:2px">{hub}</code>
             &nbsp;·&nbsp; <span style="color:#6b6b64;font-size:12px">{hub_source}</span><br>
-            <b>CSS</b> = mean(|CI|) per node &nbsp;·&nbsp;
-            Threshold: |CI| &gt; $10/MWh = congested &nbsp;·&nbsp;
-            <span style="color:#c8102e;font-weight:600">For best results: include HB_ hub buses in your LMP file</span>
-        </div>""", unsafe_allow_html=True)
-
-        # Summary metric row
+            <b>CSS</b> = mean(|CI|) per node &nbsp;·&nbsp; Threshold: |CI| &gt; $10/MWh = congested</div>""", unsafe_allow_html=True)
         high_count = len(result[result["Congestion Risk"]=="🔴 HIGH"])
         med_count  = len(result[result["Congestion Risk"]=="🟡 MEDIUM"])
-        low_count  = len(result[result["Congestion Risk"]=="🟢 LOW"])
         avg_css    = result["CSS ($/MWh)"].mean()
         max_css    = result["CSS ($/MWh)"].max()
         max_node   = result.loc[result["CSS ($/MWh)"].idxmax(), "Node"] if len(result) else "—"
-
         cm1,cm2,cm3,cm4,cm5 = st.columns(5)
-        cm1.metric("Nodes Analysed",  len(result))
-        cm2.metric("🔴 High Risk",    high_count)
-        cm3.metric("🟡 Medium Risk",  med_count)
-        cm4.metric("Avg CSS",         f"${avg_css:.2f}/MWh")
-        cm5.metric("Most Congested",  max_node, f"${max_css:.2f} CSS")
-
-        # CSS bar chart
+        cm1.metric("Nodes Analysed", len(result))
+        cm2.metric("🔴 High Risk",   high_count)
+        cm3.metric("🟡 Medium Risk", med_count)
+        cm4.metric("Avg CSS",        f"${avg_css:.2f}/MWh")
+        cm5.metric("Most Congested", max_node, f"${max_css:.2f} CSS")
         fig_css = go.Figure()
         color_map = {"🔴 HIGH": "#c8102e", "🟡 MEDIUM": "#b8860b", "🟢 LOW": "#1a6a1a"}
         for risk_label, grp in result.groupby("Congestion Risk"):
-            fig_css.add_trace(go.Bar(
-                x=grp["Node"], y=grp["CSS ($/MWh)"],
-                name=risk_label,
+            fig_css.add_trace(go.Bar(x=grp["Node"], y=grp["CSS ($/MWh)"], name=risk_label,
                 marker_color=color_map.get(risk_label, "#6b6b64"),
                 hovertemplate="<b>%{x}</b><br>CSS: $%{y:.2f}/MWh<extra></extra>"))
         _lay = neon_plotly_layout("Congestion Severity Score (CSS) by Node", 300)
-        _lay.update(barmode="stack", xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="CSS ($/MWh)",tickprefix="$",tickfont=dict(size=10,color="#6b6b64")))
+        _lay.update(barmode="stack")
         fig_css.update_layout(**_lay)
         st.plotly_chart(fig_css, use_container_width=True)
-
-        # Congestion % gauge-style bar
-        fig_pct = go.Figure()
-        result_s = result.sort_values("Congestion %", ascending=False)
-        fig_pct.add_trace(go.Bar(
-            x=result_s["Node"], y=result_s["Congestion %"],
-            marker=dict(
-                color=result_s["Congestion %"],
-                colorscale=[[0,"#1a6a1a"],[0.3,"#b8860b"],[1,"#c8102e"]],
-                showscale=True,
-                colorbar=dict(title="%", ticksuffix="%", len=0.6),
-            ),
-            text=result_s["Congestion %"].apply(lambda v: f"{v:.1f}%"),
-            textposition="outside",
-            hovertemplate="<b>%{x}</b><br>Congested: %{y:.1f}% of intervals<extra></extra>"))
-        _lay = neon_plotly_layout("Congestion % of Intervals (|CI| > $10/MWh)", 300)
-        _lay.update(xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="Congestion %",ticksuffix="%",tickfont=dict(size=10,color="#6b6b64")))
-        fig_pct.update_layout(**_lay)
-        st.plotly_chart(fig_pct, use_container_width=True)
-
-        # Source-side vs Load-side stacked bar
-        if "Source-Side Hours" in result.columns:
-            fig_side = go.Figure()
-            fig_side.add_trace(go.Bar(
-                x=result["Node"], y=result["Source-Side Hours"],
-                name="Source-Side (CI > +10)", marker_color="#c8102e",
-                hovertemplate="%{x}<br>Source-Side: %{y} hrs<extra></extra>"))
-            fig_side.add_trace(go.Bar(
-                x=result["Node"], y=result["Load-Side Hours"],
-                name="Load-Side (CI < −10)",  marker_color="#1a3a7a",
-                hovertemplate="%{x}<br>Load-Side: %{y} hrs<extra></extra>"))
-            _lay = neon_plotly_layout("Congestion Direction — Source vs Load Side", 280)
-            _lay.update(barmode="group", xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="Hours",tickfont=dict(size=10,color="#6b6b64")))
-            fig_side.update_layout(**_lay)
-            st.plotly_chart(fig_side, use_container_width=True)
-
-        # Congestion Rent proxy
-        if "CR Proxy ($/hr)" in result.columns:
-            st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.12em;text-transform:uppercase;margin:10px 0 6px">Congestion Rent Proxy (100 MW capacity)</div>', unsafe_allow_html=True)
-            fig_cr = go.Figure(go.Bar(
-                x=result["Node"], y=result["CR Proxy ($/hr)"],
-                marker_color=["#c8102e" if v>=0 else "#1a3a7a" for v in result["CR Proxy ($/hr)"]],
-                hovertemplate="%{x}<br>CR Proxy: $%{y:,.0f}/hr<extra></extra>"))
-            _lay = neon_plotly_layout("Congestion Rent Proxy ($/hr) = Avg CI × Capacity MW", 240)
-            _lay.update(xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="$/hr",tickprefix="$",tickfont=dict(size=10,color="#6b6b64")))
-            fig_cr.update_layout(**_lay)
-            st.plotly_chart(fig_cr, use_container_width=True)
-
-        # Full table
         with st.expander("Full Congestion Table"):
             st.dataframe(result, use_container_width=True,
                 column_config={
-                    "CSS ($/MWh)":       st.column_config.NumberColumn(format="$%.2f"),
-                    "Avg CI ($/MWh)":    st.column_config.NumberColumn(format="$%.2f"),
-                    "Max |CI| ($/MWh)":  st.column_config.NumberColumn(format="$%.2f"),
-                    "Congestion %":      st.column_config.NumberColumn(format="%.1f%%"),
-                    "CR Proxy ($/hr)":   st.column_config.NumberColumn(format="$%.0f"),
+                    "CSS ($/MWh)":      st.column_config.NumberColumn(format="$%.2f"),
+                    "Avg CI ($/MWh)":   st.column_config.NumberColumn(format="$%.2f"),
+                    "Max |CI| ($/MWh)": st.column_config.NumberColumn(format="$%.2f"),
+                    "Congestion %":     st.column_config.NumberColumn(format="%.1f%%"),
+                    "CR Proxy ($/hr)":  st.column_config.NumberColumn(format="$%.0f"),
                 })
         st.download_button("↓ Congestion CSV", data=to_csv_bytes(result),
                            file_name="congestion.csv", mime="text/csv", key=f"{key_prefix}_dl_cong")
 
-    # ══════════════════════════════════════════════════════════════
-    # CURTAILMENT — CPI / ECS dashboard
-    # ══════════════════════════════════════════════════════════════
     elif uc_sel == "curtailment" and isinstance(result, pd.DataFrame):
-        st.markdown("""
-        <div style="background:#f0efec;border-left:4px solid #b8860b;border-radius:2px;
-             padding:10px 16px;margin-bottom:14px;font-family:DM Sans,sans-serif;font-size:13px;color:#3d3d38">
+        st.markdown("""<div style="background:#f0efec;border-left:4px solid #b8860b;border-radius:2px;padding:10px 16px;margin-bottom:14px;font-family:DM Sans,sans-serif;font-size:13px;color:#3d3d38">
             <b>CPI</b> = (intervals with LMP ≤ $0) ÷ Total Intervals × 100 &nbsp;·&nbsp;
             <b>ECS</b> = Economic Curtailment Signal (LMP ≤ 0) &nbsp;·&nbsp;
-            Thresholds: CPI &gt; 20% = 🔴 HIGH, &gt; 5% = 🟡 MEDIUM, ≤ 5% = 🟢 LOW
-        </div>""", unsafe_allow_html=True)
-
-        # Summary row
+            Thresholds: CPI &gt; 20% = 🔴 HIGH, &gt; 5% = 🟡 MEDIUM, ≤ 5% = 🟢 LOW</div>""", unsafe_allow_html=True)
         high_c = len(result[result["Curtailment Risk"]=="🔴 HIGH"])
         med_c  = len(result[result["Curtailment Risk"]=="🟡 MEDIUM"])
         avg_cpi = result["CPI % (LMP ≤ 0)"].mean()
         max_cpi = result["CPI % (LMP ≤ 0)"].max()
         max_bus = result.loc[result["CPI % (LMP ≤ 0)"].idxmax(), "Bus"] if len(result) else "—"
-        total_neg = int(result["≤ $0 Hours"].sum())
-
         cm1,cm2,cm3,cm4,cm5 = st.columns(5)
-        cm1.metric("Buses Analysed",     len(result))
-        cm2.metric("🔴 High CPI",        high_c)
-        cm3.metric("🟡 Medium CPI",      med_c)
-        cm4.metric("Avg CPI %",          f"{avg_cpi:.1f}%")
-        cm5.metric("Highest CPI",        max_bus, f"{max_cpi:.1f}%")
-
-        # CPI % bar chart — color-coded
+        cm1.metric("Buses Analysed", len(result))
+        cm2.metric("🔴 High CPI",    high_c)
+        cm3.metric("🟡 Medium CPI",  med_c)
+        cm4.metric("Avg CPI %",      f"{avg_cpi:.1f}%")
+        cm5.metric("Highest CPI",    max_bus, f"{max_cpi:.1f}%")
         result_s = result.sort_values("CPI % (LMP ≤ 0)", ascending=False)
         fig_cpi = go.Figure()
         risk_colors = {"🔴 HIGH":"#c8102e","🟡 MEDIUM":"#b8860b","🟢 LOW":"#1a6a1a"}
         for risk_label, grp in result_s.groupby("Curtailment Risk"):
-            fig_cpi.add_trace(go.Bar(
-                x=grp["Bus"], y=grp["CPI % (LMP ≤ 0)"],
-                name=risk_label,
+            fig_cpi.add_trace(go.Bar(x=grp["Bus"], y=grp["CPI % (LMP ≤ 0)"], name=risk_label,
                 marker_color=risk_colors.get(risk_label, "#6b6b64"),
-                text=grp["CPI % (LMP ≤ 0)"].apply(lambda v: f"{v:.1f}%"),
-                textposition="outside",
+                text=grp["CPI % (LMP ≤ 0)"].apply(lambda v: f"{v:.1f}%"), textposition="outside",
                 hovertemplate="<b>%{x}</b><br>CPI: %{y:.2f}%<extra></extra>"))
-        # Add 20% and 5% threshold lines
-        fig_cpi.add_hline(y=20, line_dash="dot", line_color="#c8102e", line_width=1,
-                          annotation_text="HIGH threshold 20%",
-                          annotation_font=dict(color="#c8102e", size=9, family="DM Mono"))
-        fig_cpi.add_hline(y=5,  line_dash="dot", line_color="#b8860b", line_width=1,
-                          annotation_text="MEDIUM threshold 5%",
-                          annotation_font=dict(color="#b8860b", size=9, family="DM Mono"))
+        fig_cpi.add_hline(y=20, line_dash="dot", line_color="#c8102e", line_width=1)
+        fig_cpi.add_hline(y=5,  line_dash="dot", line_color="#b8860b", line_width=1)
         _lay = neon_plotly_layout("Curtailment Probability Index (CPI %) by Bus", 320)
-        _lay.update(barmode="stack", xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="CPI %",ticksuffix="%",tickfont=dict(size=10,color="#6b6b64")))
+        _lay.update(barmode="stack")
         fig_cpi.update_layout(**_lay)
         st.plotly_chart(fig_cpi, use_container_width=True)
-
-        # Curtailment hours breakdown: ≤$0 vs <-$20
-        fig_hrs = go.Figure()
-        fig_hrs.add_trace(go.Bar(
-            x=result_s["Bus"], y=result_s["≤ $0 Hours"],
-            name="≤ $0/MWh (ECS = 1)", marker_color="#b8860b",
-            hovertemplate="%{x}<br>≤$0 hrs: %{y}<extra></extra>"))
-        fig_hrs.add_trace(go.Bar(
-            x=result_s["Bus"], y=result_s["< −$20 Hours"],
-            name="< −$20/MWh (deep neg)", marker_color="#c8102e",
-            hovertemplate="%{x}<br><−$20 hrs: %{y}<extra></extra>"))
-        _lay = neon_plotly_layout("Curtailment Hours — ECS Events by Severity", 280)
-        _lay.update(barmode="overlay", xaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",tickangle=-35,tickfont=dict(size=10,color="#6b6b64")), yaxis=dict(gridcolor="#e2e0db",linecolor="#d0cdc6",title="Hours",tickfont=dict(size=10,color="#6b6b64")))
-        fig_hrs.update_layout(**_lay)
-        st.plotly_chart(fig_hrs, use_container_width=True)
-
-        # Risk cards per bus
-        st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.12em;text-transform:uppercase;margin:10px 0 8px">Node Risk Summary</div>', unsafe_allow_html=True)
-        for _, row in result_s.iterrows():
-            rc = {"🔴 HIGH":"#c8102e","🟡 MEDIUM":"#b8860b","🟢 LOW":"#1a6a1a"}.get(row["Curtailment Risk"], "#9b9b92")
-            st.markdown(f"""
-            <div style="background:#f7f7f5;border:1px solid {rc};border-left:4px solid {rc};
-                 border-radius:2px;padding:11px 16px;margin-bottom:5px;
-                 display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;align-items:center;gap:8px">
-                <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1a1a18;font-weight:600">{row["Bus"]}</span>
-                <span style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92">CPI %</div>
-                    <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:{rc}">{row["CPI % (LMP ≤ 0)"]:.1f}%</div></span>
-                <span style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92">ECS Events</div>
-                    <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#3d3d38">{row["ECS Events"]}</div></span>
-                <span style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92">≤$0 Hrs</div>
-                    <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#3d3d38">{row["≤ $0 Hours"]}</div></span>
-                <span style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:9px;color:#9b9b92">Avg LMP</div>
-                    <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#3d3d38">${row["Avg LMP ($/MWh)"]:.2f}</div></span>
-                <span style="text-align:right"><span style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:{rc}">{row["Curtailment Risk"]}</span></span>
-            </div>""", unsafe_allow_html=True)
-
         with st.expander("Full Curtailment Table"):
             st.dataframe(result_s, use_container_width=True,
                 column_config={
@@ -1722,7 +1398,6 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         st.download_button("↓ Revenue CSV", data=to_csv_bytes(result),
                            file_name="revenue.csv", mime="text/csv", key=f"{key_prefix}_dl_rev")
 
-    # ── PDF export ────────────────────────────────────────────────
     st.markdown('<div class="section-label" style="margin-top:20px">Export Report</div>', unsafe_allow_html=True)
     lmp_summary = None
     try:
@@ -1738,9 +1413,8 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     return ldf
 
 
-
 # ═══════════════════════════════════════════════════════════════════
-# Sidebar
+# SIDEBAR — all content inside ONE with st.sidebar block
 # ═══════════════════════════════════════════════════════════════════
 with st.sidebar:
     st.markdown(f"""
@@ -1755,14 +1429,14 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-page = st.radio("", [
-    "🗺️ Infrastructure Map",
-    "⚡ Node & Hub Selector",
-    "📈 Live LMP Dashboard",
-    "🔍 Bus Lookup",
-    "🏭 Substation Lookup",
-    "📋 Browse All",
-], label_visibility="collapsed")
+    page = st.radio("", [
+        "🗺️ Infrastructure Map",
+        "⚡ Node & Hub Selector",
+        "📈 Live LMP Dashboard",
+        "🔍 Bus Lookup",
+        "🏭 Substation Lookup",
+        "📋 Browse All",
+    ], label_visibility="collapsed")
 
     st.markdown(f"""
     <div style="padding:20px 20px 0;margin-top:8px">
@@ -1809,6 +1483,9 @@ page = st.radio("", [
     """, unsafe_allow_html=True)
 
 
+# ═══════════════════════════════════════════════════════════════════
+# PAGE ROUTING — all elif at zero indentation
+# ═══════════════════════════════════════════════════════════════════
 if page == "🗺️ Infrastructure Map":
 
     st.markdown(f"""<div class="page-header">
@@ -1821,14 +1498,12 @@ if page == "🗺️ Infrastructure Map":
                  ("search_lat",31.5),("search_lon",-97.5)]:
         if k not in st.session_state: st.session_state[k] = v
 
-    # ── SEARCH PARAMETERS ─────────────────────────────────────────
     st.markdown('<div style="background:#f7f7f5;border:1px solid #e2e0db;border-radius:2px;padding:20px 22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">', unsafe_allow_html=True)
     st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#9b9b92;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;font-weight:500">Search Parameters</div>', unsafe_allow_html=True)
 
-    # ── Geocode search bar ─────────────────────────────────────────
     geo_col, geo_btn = st.columns([5, 1])
     with geo_col:
-        geo_input = st.text_input("Address / City", placeholder="Type address, city, county or project name (e.g. 'Wichita Falls TX' or '2800 Post Oak Blvd Houston')",
+        geo_input = st.text_input("Address / City", placeholder="Type address, city, county or project name",
                                   label_visibility="collapsed", key="geo_input")
     with geo_btn:
         geo_go = st.button("Locate →", key="geo_go", use_container_width=True)
@@ -1870,7 +1545,6 @@ if page == "🗺️ Infrastructure Map":
         hub_thresh = st.selectbox("thresh", [115,138,230,345], index=2,
                                   label_visibility="collapsed", key="hub_thresh")
 
-    # kV filter pills
     st.markdown('<div style="font-family:Share Tech Mono,monospace;font-size:10px;color:#3a6080;margin:12px 0 6px">Filter Voltages</div>', unsafe_allow_html=True)
     kv_options = ["34.5","69","115","138","230","345","500","765"]
     kv_cols = st.columns(len(kv_options)+1)
@@ -1888,7 +1562,6 @@ if page == "🗺️ Infrastructure Map":
         search_btn = st.button("🔍 Search", use_container_width=True, key="search_btn", type="primary")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Run search ─────────────────────────────────────────────────
     if search_btn:
         st.session_state.selected_osm = None
         st.session_state.ercot_sel_sub = None
@@ -1935,7 +1608,6 @@ if page == "🗺️ Infrastructure Map":
         m4.metric("Radius",       f"{results['radius_mi']} mi")
         m5.metric("Centre",       f"{clat:.3f}, {clon:.3f}")
 
-        # ── MAP ───────────────────────────────────────────────────
         fmap = folium.Map(location=[clat, clon], zoom_start=10, tiles=None, prefer_canvas=True)
         folium.TileLayer(tiles="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
             attr="© CartoDB", name="Dark", overlay=False, control=True).add_to(fmap)
@@ -1943,7 +1615,6 @@ if page == "🗺️ Infrastructure Map":
             attr="© OpenInfraMap", name="⚡ Power", overlay=True, control=True, opacity=0.85).add_to(fmap)
         folium.TileLayer(tiles="https://tiles.openinframap.org/power_high/{z}/{x}/{y}.png",
             attr="© OpenInfraMap", name="⚡ HV Lines", overlay=True, control=True, opacity=0.75).add_to(fmap)
-
         folium.Circle(location=[clat,clon], radius=results["radius_mi"]*1609.34,
             color="#00ff9d", weight=1, fill=False, dash_array="6 4",
             tooltip=f"{results['radius_mi']} mi radius").add_to(fmap)
@@ -1962,13 +1633,11 @@ if page == "🗺️ Infrastructure Map":
             op       = el.get("operator","")
             popup_html = (
                 f'<div style="font-family:Share Tech Mono,monospace;background:#030712;color:#c8e6ff;'
-                f'padding:12px;border-radius:4px;min-width:200px;border:1px solid rgba(0,200,255,0.25);'
-                f'box-shadow:0 0 20px rgba(0,200,255,0.1);">'
+                f'padding:12px;border-radius:4px;min-width:200px;border:1px solid rgba(0,200,255,0.25);">'
                 f'<div style="font-size:12px;font-weight:600;color:{"#ff6b00" if is_hub else "#00c8ff"};margin-bottom:8px">'
                 f'{"◆ HUB" if is_hub else "● NODE"} {name}</div>'
                 f'<div style="font-size:10px;color:#3a6080">VOLTAGE</div>'
                 f'<div style="font-size:12px;margin-bottom:5px">{v_label}</div>'
-                f'{"<div style=font-size:10px;color:#3a6080>OPERATOR</div><div style=font-size:11px;margin-bottom:5px>"+op+"</div>" if op else ""}'
                 f'<div style="font-size:10px;color:#3a6080">{el["dist_mi"]:.1f} mi · {el["dist_km"]:.1f} km</div>'
                 f'</div>'
             )
@@ -1985,18 +1654,15 @@ if page == "🗺️ Infrastructure Map":
         folium.LayerControl(collapsed=False, position="topright").add_to(fmap)
         st_folium(fmap, key="search_map", use_container_width=True, height=480)
 
-        # Legend
         st.markdown(f"""
         <div style="display:flex;gap:20px;font-family:DM Mono,monospace;font-size:11px;
              color:#6b6b64;padding:8px 14px;background:#f7f7f5;border:1px solid #e2e0db;
              border-radius:2px;margin-top:8px;flex-wrap:wrap;">
-            <span>● <span style="color:#00ff9d;text-shadow:0 0 6px #00ff9d">Search Centre</span></span>
-            <span>◆ <span style="color:#ff6b00;text-shadow:0 0 6px #ff6b00">Hub ≥{results["hub_thresh"]} kV</span> — {len(hubs_list)}</span>
-            <span>● <span style="color:#00c8ff;text-shadow:0 0 6px #00c8ff">Node &lt;{results["hub_thresh"]} kV</span> — {len(node_list)}</span>
-            <span style="color:#1a3050">- - Radius ring</span>
+            <span>● <span style="color:#00ff9d">Search Centre</span></span>
+            <span>◆ <span style="color:#ff6b00">Hub ≥{results["hub_thresh"]} kV</span> — {len(hubs_list)}</span>
+            <span>● <span style="color:#00c8ff">Node &lt;{results["hub_thresh"]} kV</span> — {len(node_list)}</span>
         </div>""", unsafe_allow_html=True)
 
-        # ── SUBSTATION LIST ───────────────────────────────────────
         st.markdown('<div style="margin-top:20px">', unsafe_allow_html=True)
         st.markdown('<div class="section-label">FOUND SUBSTATIONS</div>', unsafe_allow_html=True)
 
@@ -2016,10 +1682,7 @@ if page == "🗺️ Infrastructure Map":
                 is_sel  = bool(st.session_state.selected_osm and
                                st.session_state.selected_osm.get("osm_id") == el["osm_id"])
                 dot_col = "#8b0b1f" if is_hub else "#1a3a7a"
-                hub_bdg = ('<span style="font-size:9px;background:rgba(255,107,0,0.12);'
-                           'border:1px solid rgba(255,107,0,0.4);color:#ff6b00;border-radius:2px;'
-                           'padding:1px 6px;margin-left:6px;font-family:Share Tech Mono,monospace">'
-                           'HUB</span>') if is_hub else ""
+                hub_bdg = ('<span style="font-size:9px;background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.4);color:#ff6b00;border-radius:2px;padding:1px 6px;margin-left:6px">HUB</span>') if is_hub else ""
                 bdr = "2px solid #00ff9d" if is_sel else ("1px solid rgba(255,107,0,0.3)" if is_hub else "1px solid rgba(0,200,255,0.15)")
                 bgc = "rgba(0,255,157,0.04)" if is_sel else "#060d1a"
                 op_part = f'<span style="color:#3a6080">{op} · </span>' if op else ""
@@ -2048,7 +1711,6 @@ if page == "🗺️ Infrastructure Map":
         with tab_nodes: render_sub_list(node_list, "nod")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # ── SELECTED SUBSTATION DETAIL ────────────────────────────
         if st.session_state.selected_osm:
             sel      = st.session_state.selected_osm
             osm_name = sel.get("name","") or "Unnamed"
@@ -2079,7 +1741,6 @@ if page == "🗺️ Infrastructure Map":
             </div>
             """, unsafe_allow_html=True)
 
-            # ERCOT match
             st.markdown('<div class="section-label">ERCOT Match</div>', unsafe_allow_html=True)
             matches = match_to_ercot(osm_name, osm_volt)
             if not matches:
@@ -2102,26 +1763,19 @@ if page == "🗺️ Infrastructure Map":
                 ercot_sub = st.session_state.ercot_sel_sub
                 sub_df    = df[df["Substation"]==ercot_sub].copy()
                 render_ercot_card(ercot_sub, sub_df)
-
                 disp = ["Substation","Bus","kV","Zone","PSSE #","PSSE Name","Resource Node","Hub"]
                 st.dataframe(sub_df[disp].sort_values("kV",ascending=False).reset_index(drop=True),
                     use_container_width=True, height=min(300,40+len(sub_df)*35))
-
                 c1, c2 = st.columns([1,4])
                 with c1:
                     st.download_button("↓ Bus List", data=to_csv_bytes(sub_df[disp]),
                         file_name=f"ercot_{ercot_sub}.csv", mime="text/csv")
                 with c2:
                     st.info(f"⚡ {len(sub_df)} buses at **{ercot_sub}** — upload LMP below for price analysis")
-
                 st.markdown("---")
-                render_lmp_full(sub_df, key_prefix="map_lmp",
-                                search_results=results, ercot_sub=ercot_sub)
+                render_lmp_full(sub_df, key_prefix="map_lmp", search_results=results, ercot_sub=ercot_sub)
 
 
-# ═══════════════════════════════════════════════════════════════════
-# PAGE 2: NODE & HUB SELECTOR
-# ═══════════════════════════════════════════════════════════════════
 elif page == "⚡ Node & Hub Selector":
     st.markdown(f"""<div class="page-header">
         <div><div class="tag">Settlement Points · LMP Analysis</div>
@@ -2167,9 +1821,11 @@ elif page == "⚡ Node & Hub Selector":
     render_lmp_full(resolved, key_prefix="sel_lmp", ercot_sub=selected_subs[0] if len(selected_subs)==1 else None)
 
 
-# ═══════════════════════════════════════════════════════════════════
-# PAGE 3: BUS LOOKUP
-# ═══════════════════════════════════════════════════════════════════
+elif page == "📈 Live LMP Dashboard":
+    from ercot_lmp_live import render_live_lmp_page
+    render_live_lmp_page()
+
+
 elif page == "🔍 Bus Lookup":
     st.markdown("""<div class="page-header"><div><div class="tag">Electrical Bus · PSSE Reference</div><h1>Bus <span>Lookup</span></h1></div></div>""", unsafe_allow_html=True)
     c1,c2 = st.columns([3,1])
@@ -2192,9 +1848,6 @@ elif page == "🔍 Bus Lookup":
         st.markdown('<div class="map-placeholder"><div class="mp-icon">⚡</div><div class="mp-sub">Enter a bus name above</div></div>',unsafe_allow_html=True)
 
 
-# ═══════════════════════════════════════════════════════════════════
-# PAGE 4: SUBSTATION LOOKUP
-# ═══════════════════════════════════════════════════════════════════
 elif page == "🏭 Substation Lookup":
     st.markdown("""<div class="page-header"><div><div class="tag">ERCOT Substation Registry</div><h1>Substation <span>Lookup</span></h1></div></div>""", unsafe_allow_html=True)
     c1,c2 = st.columns([3,1])
@@ -2217,9 +1870,6 @@ elif page == "🏭 Substation Lookup":
         st.markdown('<div class="map-placeholder"><div class="mp-icon">🏭</div><div class="mp-sub">Enter a substation name above</div></div>',unsafe_allow_html=True)
 
 
-# ═══════════════════════════════════════════════════════════════════
-# PAGE 5: BROWSE ALL
-# ═══════════════════════════════════════════════════════════════════
 elif page == "📋 Browse All":
     st.markdown("""<div class="page-header"><div><div class="tag">Full Dataset · 19,056 Points</div><h1>Browse <span>All</span></h1></div></div>""", unsafe_allow_html=True)
     c1,c2,c3,c4 = st.columns([3,1,1,1])
@@ -2241,7 +1891,3 @@ elif page == "📋 Browse All":
     disp=["Bus","PSSE Name","kV","Substation","Zone","Resource Node","Hub","PSSE #"]
     st.dataframe(f[disp].reset_index(drop=True),use_container_width=True,height=500)
     st.download_button("↓ Export CSV",data=to_csv_bytes(f[disp]),file_name="ercot_browse.csv",mime="text/csv")
-
-elif page == "📈 Live LMP Dashboard":
-    from ercot_lmp_live import render_live_lmp_page
-    render_live_lmp_page()
