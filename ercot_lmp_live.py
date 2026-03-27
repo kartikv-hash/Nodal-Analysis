@@ -40,7 +40,8 @@ TOKEN_URL = (
     "/B2C_1_PUBAPI-ROPC-FLOW/oauth2/v2.0/token"
 )
 CLIENT_ID = "fec253ea-0d06-4272-a5e6-b478baeecd70"
-SCOPE     = f"openid+{CLIENT_ID}+offline_access"
+# Scope must use spaces (not +) when sent in POST body
+SCOPE     = f"openid {CLIENT_ID} offline_access"
 API_BASE  = "https://api.ercot.com/api/public-reports"
 
 
@@ -61,8 +62,13 @@ def _get_credentials():
 
 
 def get_ercot_token(username: str, password: str) -> tuple[str | None, str | None]:
-    """POST to ERCOT B2C and return (id_token, error)."""
-    params = {
+    """POST to ERCOT B2C and return (id_token, error).
+    
+    IMPORTANT: credentials must go in the POST body (data=), NOT query params.
+    The scope must use spaces, not + signs.
+    """
+    # Send as form-encoded POST body — NOT as URL query parameters
+    body = {
         "username":      username,
         "password":      password,
         "grant_type":    "password",
@@ -71,8 +77,12 @@ def get_ercot_token(username: str, password: str) -> tuple[str | None, str | Non
         "response_type": "id_token",
     }
     try:
-        r = requests.post(TOKEN_URL, params=params, timeout=20,
-                          headers={"Content-Type": "application/x-www-form-urlencoded"})
+        r = requests.post(
+            TOKEN_URL,
+            data=body,          # <-- POST body, not params=
+            timeout=20,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
         if r.status_code == 200:
             data = r.json()
             token = data.get("id_token") or data.get("access_token")
