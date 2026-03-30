@@ -18,7 +18,7 @@ from fpdf import FPDF
 # ─────────────────────────────────────────────
 st.set_page_config(
     page_title="SunStripe · ERCOT Nodal Intelligence",
-    page_icon="⚡",
+    page_icon="S",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -836,9 +836,9 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
             avg_ci          = round(ci_series.mean(), 2)
             max_ci          = round(ci_series.abs().max(), 2)
             spread_ci       = round(ci_series.max() - ci_series.min(), 2)
-            if css > 10:   cong_risk = "🔴 HIGH"
-            elif css > 3:  cong_risk = "🟡 MEDIUM"
-            else:          cong_risk = "🟢 LOW"
+            if css > 10:   cong_risk = "HIGH"
+            elif css > 3:  cong_risk = "MEDIUM"
+            else:          cong_risk = "LOW"
             cr_proxy = round(ci_series.mean() * batt_mw, 0)
             results.append({
                 "Node": node, "Hub (reference)": hub.replace("_AVG_HUB","Avg of all buses"),
@@ -873,9 +873,9 @@ def run_lmp_analytics(lmp_df, resolved_df, use_case, batt_mw=100, batt_mwh=400, 
             p5          = round(bdf["price"].quantile(0.05), 2)
             curt_lmp    = round(bdf.loc[bdf["price"] <= 0, "price"].mean(), 2) if zero_count else 0.0
             ecs_runs    = int((bdf["ECS"].diff() != 0).sum() // 2) if zero_count else 0
-            if cpi > 20:   curt_risk = "🔴 HIGH"
-            elif cpi > 5:  curt_risk = "🟡 MEDIUM"
-            else:          curt_risk = "🟢 LOW"
+            if cpi > 20:   curt_risk = "HIGH"
+            elif cpi > 5:  curt_risk = "MEDIUM"
+            else:          curt_risk = "LOW"
             results.append({
                 "Bus": bus, "Total Intervals": total, "CPI % (LMP ≤ 0)": cpi,
                 "Neg Price Hours": neg_count, "≤ $0 Hours": zero_count, "< −$20 Hours": deep_neg,
@@ -947,7 +947,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                     st.session_state[lmp_key] = ldf
                     st.session_state[bus_key] = None
                     files = ldf["_source_file"].nunique() if "_source_file" in ldf.columns else 1
-                    st.success(f"✓ {len(ldf):,} rows · {files} file(s)")
+                    st.success(f"{len(ldf):,} rows loaded — {files} file(s)")
 
     with api_col:
         st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px;font-weight:500">Live ERCOT API</div>', unsafe_allow_html=True)
@@ -958,7 +958,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         with a2:
             days_back = st.selectbox("Days", [1,7,14,30,60],
                                      key=f"{key_prefix}_live_days", label_visibility="collapsed")
-        if st.button("Fetch Live →", key=f"{key_prefix}_fetch_live",
+        if st.button("Fetch Live", key=f"{key_prefix}_fetch_live",
                      type="primary", use_container_width=True):
             d_to   = datetime.now().strftime("%Y-%m-%d")
             d_from = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
@@ -981,12 +981,12 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                                           pd.to_timedelta(ldf["hour_int"]-1, unit="h")
                     st.session_state[lmp_key] = ldf
                     st.session_state[bus_key] = None
-                    st.success(f"✓ {len(ldf):,} rows for {live_bus}")
+                    st.success(f"{len(ldf):,} rows loaded for {live_bus}")
 
     ldf = st.session_state[lmp_key]
     if ldf is None:
         st.markdown("""<div class="map-placeholder" style="padding:32px;margin-top:12px">
-            <div class="mp-icon">📊</div>
+            <div class="mp-icon" style="font-size:24px;color:#c8102e;font-family:DM Mono,monospace">LMP</div>
             <div class="mp-title">No data loaded</div>
             <div class="mp-sub">Upload a CSV or ZIP above — the chart will appear instantly</div>
         </div>""", unsafe_allow_html=True)
@@ -1082,11 +1082,11 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     sm5.metric("Spread",     f"${spread:.2f}",  vol_lbl)
 
     if spread > 80:
-        st.success("✅  Pure Merchant Arbitrage Opportunity — spread > $80/MWh")
+        st.success("Pure Merchant Arbitrage Opportunity — spread > $80/MWh")
     elif spread > 40:
-        st.warning("⚠️  Solar + Storage Overbuild — spread $40–80/MWh")
+        st.warning("Solar + Storage Overbuild — spread $40–80/MWh")
     else:
-        st.info("ℹ️  Low Spread — focus on Capacity / Ancillary markets")
+        st.info("Low Spread — focus on Capacity / Ancillary markets")
 
     st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin:12px 0 8px;font-weight:500">Chart Overlays</div>', unsafe_allow_html=True)
     ov1, ov2, ov3, ov4, ov5, ov6 = st.columns([2, 2, 1, 1, 1, 1])
@@ -1245,7 +1245,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
 
     if ov_2h or ov_4h:
         st.markdown('<div style="font-family:DM Mono,monospace;font-size:10px;color:#6b6b64;letter-spacing:.14em;text-transform:uppercase;margin:12px 0 8px;font-weight:500">Rolling-Average BESS Strategy Results</div>', unsafe_allow_html=True)
-        with st.expander("ℹ️ How the rolling-average BESS strategy works", expanded=False):
+        with st.expander("How the rolling-average BESS strategy works", expanded=False):
             st.markdown("""
 **Step 1 — Smooth the curve:** A 3-hour centred rolling average removes single-hour spikes.
 **Step 2 — Find optimal hours:** Hour with lowest rolling avg → charge centre. Hour with highest → discharge centre.
@@ -1267,10 +1267,10 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     st.markdown('<div class="section-label" style="margin-top:24px">Deep-Dive Analysis</div>', unsafe_allow_html=True)
 
     USE_CASES = {
-        "congestion":  ("🔥 Congestion Analysis", "Node-pair price spreads · bottleneck detection"),
-        "curtailment": ("⚠️ Curtailment Risk",    "Negative price frequency · renewable impact"),
-        "ftr":         ("🎯 FTR Scanner",          "Node-pair FTR value · win rate"),
-        "revenue":     ("🏗️ Revenue Model",        "Solar · Wind · BESS annual revenue per MW"),
+        "congestion":  ("Congestion Analysis", "Node-pair price spreads · bottleneck detection"),
+        "curtailment": ("Curtailment Risk",    "Negative price frequency · renewable impact"),
+        "ftr":         ("FTR Scanner",          "Node-pair FTR value · win rate"),
+        "revenue":     ("Revenue Model",        "Solar · Wind · BESS annual revenue per MW"),
     }
 
     uc_sel = st.selectbox("Analysis module", list(USE_CASES.keys()),
@@ -1279,7 +1279,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     uc_title, uc_desc = USE_CASES[uc_sel]
     st.markdown(f'<div style="font-family:DM Sans,sans-serif;font-size:13px;color:#6b6b64;margin-bottom:10px">{uc_desc}</div>', unsafe_allow_html=True)
 
-    run_btn = st.button(f"Run {uc_title} →", key=f"{key_prefix}_run_{uc_sel}", type="primary", use_container_width=False)
+    run_btn = st.button(f"Run {uc_title}", key=f"{key_prefix}_run_{uc_sel}", type="primary", use_container_width=False)
     result = None
     if run_btn:
         with st.spinner("Analysing..."):
@@ -1302,25 +1302,25 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
         hub_source = result.attrs.get("hub_source", "")
         low_var    = result.attrs.get("low_variance", False)
         if low_var:
-            st.warning("⚠️ **Same-substation analysis detected.** All buses belong to the same substation and have nearly identical LMPs — congestion between them will be ~$0. For meaningful congestion analysis, include buses from **different substations** or upload an LMP file containing an **HB_HOUSTON / HB_NORTH / HB_SOUTH / HB_WEST** hub price column alongside your node buses.")
+            st.warning("Same-substation analysis detected. All buses belong to the same substation and have nearly identical LMPs — congestion between them will be ~$0. For meaningful congestion analysis, include buses from **different substations** or upload an LMP file containing an **HB_HOUSTON / HB_NORTH / HB_SOUTH / HB_WEST** hub price column alongside your node buses.")
         st.markdown(f"""<div style="background:#f0efec;border-left:4px solid #1a3a7a;border-radius:2px;padding:10px 16px;margin-bottom:14px;font-family:DM Sans,sans-serif;font-size:13px;color:#3d3d38">
             <b>Congestion Index (CI)</b> = LMP<sub>hub</sub> − LMP<sub>node</sub> &nbsp;·&nbsp;
             <b>Hub reference:</b> <code style="background:#e8f0fe;padding:1px 6px;border-radius:2px">{hub}</code>
             &nbsp;·&nbsp; <span style="color:#6b6b64;font-size:12px">{hub_source}</span><br>
             <b>CSS</b> = mean(|CI|) per node &nbsp;·&nbsp; Threshold: |CI| &gt; $10/MWh = congested</div>""", unsafe_allow_html=True)
-        high_count = len(result[result["Congestion Risk"]=="🔴 HIGH"])
-        med_count  = len(result[result["Congestion Risk"]=="🟡 MEDIUM"])
+        high_count = len(result[result["Congestion Risk"]=="HIGH"])
+        med_count  = len(result[result["Congestion Risk"]=="MEDIUM"])
         avg_css    = result["CSS ($/MWh)"].mean()
         max_css    = result["CSS ($/MWh)"].max()
         max_node   = result.loc[result["CSS ($/MWh)"].idxmax(), "Node"] if len(result) else "—"
         cm1,cm2,cm3,cm4,cm5 = st.columns(5)
         cm1.metric("Nodes Analysed", len(result))
-        cm2.metric("🔴 High Risk",   high_count)
-        cm3.metric("🟡 Medium Risk", med_count)
+        cm2.metric("High Risk",   high_count)
+        cm3.metric("Medium Risk", med_count)
         cm4.metric("Avg CSS",        f"${avg_css:.2f}/MWh")
         cm5.metric("Most Congested", max_node, f"${max_css:.2f} CSS")
         fig_css = go.Figure()
-        color_map = {"🔴 HIGH": "#c8102e", "🟡 MEDIUM": "#b8860b", "🟢 LOW": "#1a6a1a"}
+        color_map = {"HIGH": "#c8102e", "MEDIUM": "#b8860b", "LOW": "#1a6a1a"}
         for risk_label, grp in result.groupby("Congestion Risk"):
             fig_css.add_trace(go.Bar(x=grp["Node"], y=grp["CSS ($/MWh)"], name=risk_label,
                 marker_color=color_map.get(risk_label, "#6b6b64"),
@@ -1338,28 +1338,28 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                     "Congestion %":     st.column_config.NumberColumn(format="%.1f%%"),
                     "CR Proxy ($/hr)":  st.column_config.NumberColumn(format="$%.0f"),
                 })
-        st.download_button("↓ Congestion CSV", data=to_csv_bytes(result),
+        st.download_button("Download Congestion CSV", data=to_csv_bytes(result),
                            file_name="congestion.csv", mime="text/csv", key=f"{key_prefix}_dl_cong")
 
     elif uc_sel == "curtailment" and isinstance(result, pd.DataFrame):
         st.markdown("""<div style="background:#f0efec;border-left:4px solid #b8860b;border-radius:2px;padding:10px 16px;margin-bottom:14px;font-family:DM Sans,sans-serif;font-size:13px;color:#3d3d38">
             <b>CPI</b> = (intervals with LMP ≤ $0) ÷ Total Intervals × 100 &nbsp;·&nbsp;
             <b>ECS</b> = Economic Curtailment Signal (LMP ≤ 0) &nbsp;·&nbsp;
-            Thresholds: CPI &gt; 20% = 🔴 HIGH, &gt; 5% = 🟡 MEDIUM, ≤ 5% = 🟢 LOW</div>""", unsafe_allow_html=True)
-        high_c = len(result[result["Curtailment Risk"]=="🔴 HIGH"])
-        med_c  = len(result[result["Curtailment Risk"]=="🟡 MEDIUM"])
+            Thresholds: CPI &gt; 20% = HIGH (&gt;20%), MEDIUM (&gt;5%), LOW (≤5%)</div>""", unsafe_allow_html=True)
+        high_c = len(result[result["Curtailment Risk"]=="HIGH"])
+        med_c  = len(result[result["Curtailment Risk"]=="MEDIUM"])
         avg_cpi = result["CPI % (LMP ≤ 0)"].mean()
         max_cpi = result["CPI % (LMP ≤ 0)"].max()
         max_bus = result.loc[result["CPI % (LMP ≤ 0)"].idxmax(), "Bus"] if len(result) else "—"
         cm1,cm2,cm3,cm4,cm5 = st.columns(5)
         cm1.metric("Buses Analysed", len(result))
-        cm2.metric("🔴 High CPI",    high_c)
-        cm3.metric("🟡 Medium CPI",  med_c)
+        cm2.metric("High CPI",    high_c)
+        cm3.metric("Medium CPI",  med_c)
         cm4.metric("Avg CPI %",      f"{avg_cpi:.1f}%")
         cm5.metric("Highest CPI",    max_bus, f"{max_cpi:.1f}%")
         result_s = result.sort_values("CPI % (LMP ≤ 0)", ascending=False)
         fig_cpi = go.Figure()
-        risk_colors = {"🔴 HIGH":"#c8102e","🟡 MEDIUM":"#b8860b","🟢 LOW":"#1a6a1a"}
+        risk_colors = {"HIGH":"#c8102e","MEDIUM":"#b8860b","LOW":"#1a6a1a"}
         for risk_label, grp in result_s.groupby("Curtailment Risk"):
             fig_cpi.add_trace(go.Bar(x=grp["Bus"], y=grp["CPI % (LMP ≤ 0)"], name=risk_label,
                 marker_color=risk_colors.get(risk_label, "#6b6b64"),
@@ -1379,7 +1379,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
                     "Min LMP ($/MWh)":   st.column_config.NumberColumn(format="$%.2f"),
                     "Avg Curtailed LMP": st.column_config.NumberColumn(format="$%.2f"),
                 })
-        st.download_button("↓ Curtailment CSV", data=to_csv_bytes(result),
+        st.download_button("Download Curtailment CSV", data=to_csv_bytes(result),
                            file_name="curtailment.csv", mime="text/csv", key=f"{key_prefix}_dl_curt")
 
     elif uc_sel == "ftr" and isinstance(result, pd.DataFrame):
@@ -1387,7 +1387,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
             column_config={"Avg FTR Value $/MWh": st.column_config.NumberColumn(format="$%.2f"),
                            "Max FTR Value $/MWh": st.column_config.NumberColumn(format="$%.2f"),
                            "Win Rate %": st.column_config.NumberColumn(format="%.1f%%")})
-        st.download_button("↓ FTR CSV", data=to_csv_bytes(result),
+        st.download_button("Download FTR CSV", data=to_csv_bytes(result),
                            file_name="ftr.csv", mime="text/csv", key=f"{key_prefix}_dl_ftr")
 
     elif uc_sel == "revenue" and isinstance(result, pd.DataFrame):
@@ -1395,7 +1395,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
             column_config={"Annual Solar Rev ($/MW)": st.column_config.NumberColumn(format="$%.0f"),
                            "Annual Wind Rev ($/MW)":  st.column_config.NumberColumn(format="$%.0f"),
                            "Annual BESS Rev ($/MW)":  st.column_config.NumberColumn(format="$%.0f")})
-        st.download_button("↓ Revenue CSV", data=to_csv_bytes(result),
+        st.download_button("Download Revenue CSV", data=to_csv_bytes(result),
                            file_name="revenue.csv", mime="text/csv", key=f"{key_prefix}_dl_rev")
 
     st.markdown('<div class="section-label" style="margin-top:20px">Export Report</div>', unsafe_allow_html=True)
@@ -1406,7 +1406,7 @@ def render_lmp_full(resolved_df, key_prefix="lmp", search_results=None, ercot_su
     except: pass
     if ercot_sub and resolved_df is not None:
         pdf_bytes = generate_pdf_report(search_results, ercot_sub, resolved_df, lmp_summary)
-        st.download_button("↓ Download PDF Report (SunStripe)",
+        st.download_button("Download PDF Report",
             data=bytes(pdf_bytes),
             file_name=f"sunstripe_{ercot_sub}_{datetime.now().strftime('%Y%m%d')}.pdf",
             mime="application/pdf", key=f"{key_prefix}_pdf_dl", type="primary")
@@ -1430,12 +1430,12 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     page = st.radio("", [
-        "🗺️ Infrastructure Map",
-        "⚡ Node & Hub Selector",
-        "📈 Live LMP Dashboard",
-        "🔍 Bus Lookup",
-        "🏭 Substation Lookup",
-        "📋 Browse All",
+        "Infrastructure Map",
+        "Node & Hub Selector",
+        "Live LMP Dashboard",
+        "Bus Lookup",
+        "Substation Lookup",
+        "Browse All",
     ], label_visibility="collapsed")
 
     st.markdown(f"""
@@ -1472,13 +1472,13 @@ with st.sidebar:
               background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
               border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;
               color:rgba(255,255,255,0.6);text-decoration:none;margin-bottom:6px">
-        <span>ERCOT BESS Dashboard</span><span style="opacity:.4">↗</span></a>
+        <span>ERCOT BESS Dashboard</span></a>
     <a href="https://fatal-flaw-o7aks4agtoffgyydbvrguj.streamlit.app/" target="_blank"
        style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;
               background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
               border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;
               color:rgba(255,255,255,0.6);text-decoration:none">
-        <span>SiteIQ Fatal Flaw</span><span style="opacity:.4">↗</span></a>
+        <span>SiteIQ Fatal Flaw</span></a>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1486,7 +1486,7 @@ with st.sidebar:
 # ═══════════════════════════════════════════════════════════════════
 # PAGE ROUTING — all elif at zero indentation
 # ═══════════════════════════════════════════════════════════════════
-if page == "🗺️ Infrastructure Map":
+if page == "Infrastructure Map":
 
     st.markdown(f"""<div class="page-header">
         <div><div class="tag">Infrastructure · OSM + ERCOT</div>
@@ -1506,7 +1506,7 @@ if page == "🗺️ Infrastructure Map":
         geo_input = st.text_input("Address / City", placeholder="Type address, city, county or project name",
                                   label_visibility="collapsed", key="geo_input")
     with geo_btn:
-        geo_go = st.button("Locate →", key="geo_go", use_container_width=True)
+        geo_go = st.button("Locate", key="geo_go", use_container_width=True)
 
     if geo_go and geo_input.strip():
         coord_m = re.match(r"^\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*$", geo_input.strip())
@@ -1521,7 +1521,7 @@ if page == "🗺️ Infrastructure Map":
                 if geo_r:
                     st.session_state.search_lat = float(geo_r[0]["lat"])
                     st.session_state.search_lon = float(geo_r[0]["lon"])
-                    st.success(f"📍 {geo_r[0]['display_name'].split(',')[0]}")
+                    st.success(f"Located: {geo_r[0]['display_name'].split(',')[0]}")
                 else:
                     st.warning("Location not found.")
             except Exception as e:
@@ -1557,9 +1557,9 @@ if page == "🗺️ Infrastructure Map":
     oim_url = f"https://openinframap.org/#10/{lat_input:.4f}/{lon_input:.4f}"
     link_col, btn_col = st.columns([4,1])
     with link_col:
-        st.markdown(f'<a href="{oim_url}" target="_blank" style="font-family:Share Tech Mono,monospace;font-size:11px;color:#00c8ff;text-decoration:none;text-shadow:0 0 6px #00c8ff">🔗 Open this area in OpenInfraMap ↗</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{oim_url}" target="_blank" style="font-family:Share Tech Mono,monospace;font-size:11px;color:#00c8ff;text-decoration:none;text-shadow:0 0 6px #00c8ff">Open this area in OpenInfraMap</a>', unsafe_allow_html=True)
     with btn_col:
-        search_btn = st.button("🔍 Search", use_container_width=True, key="search_btn", type="primary")
+        search_btn = st.button("Search", use_container_width=True, key="search_btn", type="primary")
     st.markdown('</div>', unsafe_allow_html=True)
 
     if search_btn:
@@ -1591,7 +1591,7 @@ if page == "🗺️ Infrastructure Map":
 
     if results is None:
         st.markdown("""<div class="map-placeholder">
-            <div class="mp-icon">🗺️</div>
+            <div class="mp-icon" style="font-size:24px;color:#c8102e;font-family:DM Mono,monospace">MAP</div>
             <div class="mp-title">No search yet</div>
             <div class="mp-sub">Enter an address or coordinates above, set your radius, and click Search.</div>
         </div>""", unsafe_allow_html=True)
@@ -1612,9 +1612,9 @@ if page == "🗺️ Infrastructure Map":
         folium.TileLayer(tiles="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
             attr="© CartoDB", name="Dark", overlay=False, control=True).add_to(fmap)
         folium.TileLayer(tiles="https://tiles.openinframap.org/power_medium/{z}/{x}/{y}.png",
-            attr="© OpenInfraMap", name="⚡ Power", overlay=True, control=True, opacity=0.85).add_to(fmap)
+            attr="© OpenInfraMap", name="Power Grid", overlay=True, control=True, opacity=0.85).add_to(fmap)
         folium.TileLayer(tiles="https://tiles.openinframap.org/power_high/{z}/{x}/{y}.png",
-            attr="© OpenInfraMap", name="⚡ HV Lines", overlay=True, control=True, opacity=0.75).add_to(fmap)
+            attr="© OpenInfraMap", name="HV Lines", overlay=True, control=True, opacity=0.75).add_to(fmap)
         folium.Circle(location=[clat,clon], radius=results["radius_mi"]*1609.34,
             color="#00ff9d", weight=1, fill=False, dash_array="6 4",
             tooltip=f"{results['radius_mi']} mi radius").add_to(fmap)
@@ -1667,7 +1667,7 @@ if page == "🗺️ Infrastructure Map":
         st.markdown('<div class="section-label">FOUND SUBSTATIONS</div>', unsafe_allow_html=True)
 
         tab_all, tab_hubs, tab_nodes = st.tabs([
-            f"All ({len(elements)})", f"◆ Hubs ({len(hubs_list)})", f"● Nodes ({len(node_list)})"])
+            f"All ({len(elements)})", f"Hubs ({len(hubs_list)})", f"Nodes ({len(node_list)})"])
 
         def render_sub_list(sub_list, tab_prefix="t"):
             if not sub_list:
@@ -1701,7 +1701,7 @@ if page == "🗺️ Infrastructure Map":
                 col_a, col_b = st.columns([5,1])
                 with col_a: st.markdown(html, unsafe_allow_html=True)
                 with col_b:
-                    if st.button("Inspect →", key=f"{tab_prefix}_{el['osm_id']}", use_container_width=True):
+                    if st.button("Inspect", key=f"{tab_prefix}_{el['osm_id']}", use_container_width=True):
                         st.session_state.selected_osm  = el
                         st.session_state.ercot_sel_sub = None
                         st.rerun()
@@ -1736,7 +1736,7 @@ if page == "🗺️ Infrastructure Map":
                    style="display:inline-block;margin-top:8px;padding:7px 16px;background:#f7f7f5;
                           border:1px solid #d0cdc6;border-radius:2px;font-family:'DM Sans',sans-serif;
                           font-size:12px;font-weight:500;color:#1a3a7a;text-decoration:none;">
-                   🌿 Open in SiteIQ Fatal Flaw ↗
+                   Open in SiteIQ Fatal Flaw
                 </a>
             </div>
             """, unsafe_allow_html=True)
@@ -1768,15 +1768,15 @@ if page == "🗺️ Infrastructure Map":
                     use_container_width=True, height=min(300,40+len(sub_df)*35))
                 c1, c2 = st.columns([1,4])
                 with c1:
-                    st.download_button("↓ Bus List", data=to_csv_bytes(sub_df[disp]),
+                    st.download_button("Download Bus List", data=to_csv_bytes(sub_df[disp]),
                         file_name=f"ercot_{ercot_sub}.csv", mime="text/csv")
                 with c2:
-                    st.info(f"⚡ {len(sub_df)} buses at **{ercot_sub}** — upload LMP below for price analysis")
+                    st.info(f"{len(sub_df)} buses at **{ercot_sub}** — upload LMP below for price analysis")
                 st.markdown("---")
                 render_lmp_full(sub_df, key_prefix="map_lmp", search_results=results, ercot_sub=ercot_sub)
 
 
-elif page == "⚡ Node & Hub Selector":
+elif page == "Node & Hub Selector":
     st.markdown(f"""<div class="page-header">
         <div><div class="tag">Settlement Points · LMP Analysis</div>
         <h1>Node & Hub <span>Selector</span></h1></div>
@@ -1804,7 +1804,7 @@ elif page == "⚡ Node & Hub Selector":
             placeholder=f"Choose from {len(sub_list):,} substations...", label_visibility="collapsed")
 
     if not selected_subs:
-        st.markdown('<div class="map-placeholder" style="padding:40px;margin-top:8px"><div class="mp-icon">🏭</div><div class="mp-sub">Select substations to auto-resolve buses, zones & PSSE numbers</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-placeholder" style="padding:40px;margin-top:8px"><div class="mp-icon" style="font-size:24px;color:#c8102e;font-family:DM Mono,monospace">SUB</div><div class="mp-sub">Select substations to auto-resolve buses, zones & PSSE numbers</div></div>', unsafe_allow_html=True)
         st.stop()
 
     resolved = df_kv[df_kv["Substation"].isin(selected_subs)].copy()
@@ -1815,18 +1815,18 @@ elif page == "⚡ Node & Hub Selector":
     disp_cols = ["Substation","Bus","kV","Zone","PSSE #","PSSE Name","Resource Node","Hub","Node"]
     st.dataframe(resolved[disp_cols].sort_values(["Substation","kV"],ascending=[True,False]).reset_index(drop=True),
         use_container_width=True, height=min(380,40+len(resolved)*35))
-    st.download_button("↓ Export Bus List", data=to_csv_bytes(resolved[disp_cols]),
+    st.download_button("Download Bus List", data=to_csv_bytes(resolved[disp_cols]),
         file_name=f"ercot_{'_'.join(selected_subs[:3])}.csv", mime="text/csv")
     st.markdown("---")
     render_lmp_full(resolved, key_prefix="sel_lmp", ercot_sub=selected_subs[0] if len(selected_subs)==1 else None)
 
 
-elif page == "📈 Live LMP Dashboard":
+elif page == "Live LMP Dashboard":
     from ercot_lmp_live import render_live_lmp_page
     render_live_lmp_page()
 
 
-elif page == "🔍 Bus Lookup":
+elif page == "Bus Lookup":
     st.markdown("""<div class="page-header"><div><div class="tag">Electrical Bus · PSSE Reference</div><h1>Bus <span>Lookup</span></h1></div></div>""", unsafe_allow_html=True)
     c1,c2 = st.columns([3,1])
     with c1: bus_q = st.text_input("Bus Name", placeholder="e.g. CAMPBELLSW, BUCKRA, 0001...", key="bus_q")
@@ -1843,12 +1843,12 @@ elif page == "🔍 Bus Lookup":
         st.markdown(f"**{len(results):,}** results for `{bus_q.strip()}`")
         disp=["Bus","PSSE Name","kV","Substation","Zone","Resource Node","PSSE #"]
         st.dataframe(results[disp].reset_index(drop=True),use_container_width=True,height=min(400,40+len(results)*35))
-        if len(results): st.download_button("↓ Export CSV",data=to_csv_bytes(results[disp]),file_name=f"bus_{bus_q.strip()}.csv",mime="text/csv")
+        if len(results): st.download_button("Download CSV",data=to_csv_bytes(results[disp]),file_name=f"bus_{bus_q.strip()}.csv",mime="text/csv")
     else:
-        st.markdown('<div class="map-placeholder"><div class="mp-icon">⚡</div><div class="mp-sub">Enter a bus name above</div></div>',unsafe_allow_html=True)
+        st.markdown('<div class="map-placeholder"><div class="mp-icon" style="font-size:24px;color:#c8102e;font-family:DM Mono,monospace">BUS</div><div class="mp-sub">Enter a bus name above</div></div>',unsafe_allow_html=True)
 
 
-elif page == "🏭 Substation Lookup":
+elif page == "Substation Lookup":
     st.markdown("""<div class="page-header"><div><div class="tag">ERCOT Substation Registry</div><h1>Substation <span>Lookup</span></h1></div></div>""", unsafe_allow_html=True)
     c1,c2 = st.columns([3,1])
     with c1: sub_q = st.text_input("Substation Name", placeholder="e.g. CAMPBELL, LOOKOUT, VICTORIA...")
@@ -1865,12 +1865,12 @@ elif page == "🏭 Substation Lookup":
         st.markdown(f"**{len(results):,}** results for `{sub_q.strip()}`")
         disp=["Substation","Bus","kV","Zone","PSSE #","PSSE Name","Resource Node"]
         st.dataframe(results[disp].reset_index(drop=True),use_container_width=True,height=min(400,40+len(results)*35))
-        if len(results): st.download_button("↓ Export CSV",data=to_csv_bytes(results[disp]),file_name=f"sub_{sub_q.strip()}.csv",mime="text/csv")
+        if len(results): st.download_button("Download CSV",data=to_csv_bytes(results[disp]),file_name=f"sub_{sub_q.strip()}.csv",mime="text/csv")
     else:
-        st.markdown('<div class="map-placeholder"><div class="mp-icon">🏭</div><div class="mp-sub">Enter a substation name above</div></div>',unsafe_allow_html=True)
+        st.markdown('<div class="map-placeholder"><div class="mp-icon" style="font-size:24px;color:#c8102e;font-family:DM Mono,monospace">SUB</div><div class="mp-sub">Enter a substation name above</div></div>',unsafe_allow_html=True)
 
 
-elif page == "📋 Browse All":
+elif page == "Browse All":
     st.markdown("""<div class="page-header"><div><div class="tag">Full Dataset · 19,056 Points</div><h1>Browse <span>All</span></h1></div></div>""", unsafe_allow_html=True)
     c1,c2,c3,c4 = st.columns([3,1,1,1])
     with c1: bq = st.text_input("Search","",placeholder="Bus, PSSE Name, Substation...")
@@ -1890,4 +1890,4 @@ elif page == "📋 Browse All":
     m3.metric("kV Levels",f"{f['kV'].nunique()}"); m4.metric("Res. Nodes",f"{f[f['Resource Node']!=''].shape[0]:,}")
     disp=["Bus","PSSE Name","kV","Substation","Zone","Resource Node","Hub","PSSE #"]
     st.dataframe(f[disp].reset_index(drop=True),use_container_width=True,height=500)
-    st.download_button("↓ Export CSV",data=to_csv_bytes(f[disp]),file_name="ercot_browse.csv",mime="text/csv")
+    st.download_button("Download CSV",data=to_csv_bytes(f[disp]),file_name="ercot_browse.csv",mime="text/csv")
